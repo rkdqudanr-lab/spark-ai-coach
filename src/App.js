@@ -52,7 +52,7 @@ export default function SparkSimple() {
     if (isLoggedIn) {
       const initialMessage = {
         id: 1,
-        text: `━━━━━━━━━━━━━━━━━━━━\n    ✨ SPARK ✨\n  창업 준비 실행 코치\n━━━━━━━━━━━━━━━━━━━━\n\n안녕 ${username}! 나는 SPARK야 🚀\n\n2025년 목표:\n예비창업패키지 준비 완료!\n\n매주 작은 도전과제로\n조금씩 완성해가자.\n\n오늘은 어떤 이야기를 나눠볼까? 😊`,
+        text: `━\n    ✨ SPARK ✨\n  창업 준비 실행 코치\n━\n\n안녕 ${username}! 나는 SPARK야 🚀\n\n2025년 목표:\n예비창업패키지 준비 완료!\n\n매주 작은 도전과제로\n조금씩 완성해가자.\n\n오늘은 어떤 이야기를 나눠볼까? 😊`,
         sender: 'spark',
         timestamp: new Date()
       };
