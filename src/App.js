@@ -68,7 +68,7 @@ export default function SparkSimple() {
     scrollToBottom();
   }, [messages]);
 
-  const callClaudeAPI = async (userMessage) => {
+const callClaudeAPI = async (userMessage) => {
     try {
       const newHistory = [
         ...conversationHistory,
