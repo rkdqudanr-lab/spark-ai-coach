@@ -19,21 +19,20 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-try {
-     const { messages, token } = req.body;
+  try {
+    const { messages, token } = req.body;
 
-     // 토큰 확인
-     if (!token) {
-       return res.status(401).json({ error: '로그인이 필요합니다' });
-     }
-
-     if (!messages || !Array.isArray(messages)) {
-       return res.status(400).json({ error: 'messages 배열이 필요합니다' });
-     }
-
-     // 환경변수에서 API 키 가져오기
-     const apiKey = process.env.CLAUDE_API_KEY || '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';
+    // 토큰 확인
+    if (!token) {
+      return res.status(401).json({ error: '로그인이 필요합니다' });
     }
+
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({ error: 'messages 배열이 필요합니다' });
+    }
+
+    // 환경변수에서 API 키 가져오기 (없으면 하드코딩된 키 사용)
+    const apiKey = process.env.CLAUDE_API_KEY || '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';
 
     const SYSTEM_PROMPT = "당신은 SPARK, 예비창업패키지 준비자들에게 구체적 도전과제를 주는 실행 코치입니다.\n\n" +
       "# 핵심 정체성\n\n" +
@@ -202,7 +201,7 @@ try {
 
     const data = await response.json();
     
-    // ** 제거 (별표 마크다운)
+    // 별표 제거
     let cleanMessage = data.content[0].text;
     cleanMessage = cleanMessage.replace(/\*\*/g, '');
     
