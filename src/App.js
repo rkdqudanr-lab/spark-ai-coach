@@ -75,28 +75,30 @@ export default function SparkSimple() {
         { role: 'user', content: userMessage }
       ];
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      // Vercel Serverless Function 호출
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1024,
-          system: SYSTEM_PROMPT,
-          messages: newHistory
+          messages: newHistory,
+          apiKey: apiKey
         })
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error?.message || 'API 호출 실패');
+        throw new Error(error.error || 'API 호출 실패');
       }
 
       const data = await response.json();
-      const assistantMessage = data.content[0].text;
+      
+      if (!data.success) {
+        throw new Error(data.error || '알 수 없는 오류');
+      }
+
+      const assistantMessage = data.message;
 
       setConversationHistory([
         ...newHistory,
