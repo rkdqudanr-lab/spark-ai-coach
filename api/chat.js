@@ -20,19 +20,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { messages, token } = req.body;
+    const { messages, apiKey } = req.body;
 
-    // 토큰 확인
-    if (!token) {
-      return res.status(401).json({ error: '로그인이 필요합니다' });
+    if (!apiKey) {
+      return res.status(400).json({ error: 'API 키가 필요합니다' });
     }
 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'messages 배열이 필요합니다' });
     }
-
-    // 환경변수에서 API 키 가져오기
-    const apiKey = process.env.CLAUDE_API_KEY || 'sk-ant-api03-여기에실제키입력';
 
     const SYSTEM_PROMPT = "당신은 SPARK, 예비창업패키지 준비자들에게 구체적 도전과제를 주는 실행 코치입니다.\n\n" +
       "# 핵심 정체성\n\n" +
