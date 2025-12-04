@@ -173,6 +173,8 @@ export default async function handler(req, res) {
       "- 해보자 톤 유지\n" +
       "- 친근하고 격려하는 분위기\n" +
       "- 도전과제는 반드시 위 형식 사용";
+    "- 절대 ** (별표 두 개) 사용 금지. 굵은 글씨 불필요\n"
+    "- 강조는 이모지나 구분선으로 대체"; 
 
     // Claude API 호출
     const response = await fetch('https://api.anthropic.com/v1/messages', {
