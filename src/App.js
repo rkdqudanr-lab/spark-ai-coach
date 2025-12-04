@@ -1,82 +1,64 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Zap, Loader, CheckSquare, Plus, Trash2, Check } from 'lucide-react';
+import { Send, Zap, Loader, CheckSquare, Plus, Trash2, Check, LogOut } from 'lucide-react';
 
 export default function SparkSimple() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationHistory, setConversationHistory] = useState([]);
-  const [apiKey, setApiKey] = useState('');
-  const [isSetup, setIsSetup] = useState(false);
+  
+  // 로그인 상태
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [token, setToken] = useState('');
+  const [username, setUsername] = useState('');
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  
   const [showTodos, setShowTodos] = useState(false);
   const [todos, setTodos] = useState([]);
   const [pendingTodo, setPendingTodo] = useState(null);
   const messagesEndRef = useRef(null);
 
-  const SYSTEM_PROMPT = `당신은 SPARK, 예비창업패키지 준비자들에게 구체적 도전과제를 주는 실행 코치입니다.
-
-핵심 원칙:
-1. 매 대화마다 실행 과제 1개 제시
-2. "~해보자!" 톤으로 이야기
-3. 구체적이고 실행 가능한 과제만
-
-대화 흐름:
-1. 이름 확인
-2. 현재 상태 파악
-3. 도전과제 제시!
-
-도전과제 형식:
-━━━━━━━━━━━━━━━━━━━━
-🎯 이번 주 도전과제 #N
-━━━━━━━━━━━━━━━━━━━━
-
-미션: [구체적 제목]
-
-어떻게:
-1. [단계 1]
-2. [단계 2]
-3. [단계 3]
-
-목표: [기한]
-시간: [소요시간]
-
-━━━━━━━━━━━━━━━━━━━━
-
-도전해볼래?
-
-예시:
-- 공모전 3개 찾기
-- 블로그 첫 글 작성
-- 사업계획서 1페이지 작성
-
-친근하게, 이모지 활용 (😊🚀💪🎯)`;
-
-  // 로컬스토리지에서 투두 불러오기
+  // 로컬스토리지에서 로그인 정보 복원
   useEffect(() => {
-    const savedTodos = localStorage.getItem('spark-todos');
-    if (savedTodos) {
-      setTodos(JSON.parse(savedTodos));
+    const savedToken = localStorage.getItem('spark-token');
+    const savedUsername = localStorage.getItem('spark-username');
+    if (savedToken && savedUsername) {
+      setToken(savedToken);
+      setUsername(savedUsername);
+      setIsLoggedIn(true);
     }
   }, []);
 
+  // 투두 불러오기
+  useEffect(() => {
+    if (isLoggedIn) {
+      const savedTodos = localStorage.getItem(`spark-todos-${username}`);
+      if (savedTodos) {
+        setTodos(JSON.parse(savedTodos));
+      }
+    }
+  }, [isLoggedIn, username]);
+
   // 투두 저장
   useEffect(() => {
-    if (todos.length > 0) {
-      localStorage.setItem('spark-todos', JSON.stringify(todos));
+    if (isLoggedIn && todos.length > 0) {
+      localStorage.setItem(`spark-todos-${username}`, JSON.stringify(todos));
     }
-  }, [todos]);
+  }, [todos, isLoggedIn, username]);
 
   useEffect(() => {
-    if (isSetup) {
+    if (isLoggedIn) {
       const initialMessage = {
         id: 1,
-        text: "━━━━━━━━━━━━━━━━━━━━\n    ✨ SPARK ✨\n  창업 준비 실행 코치\n━━━━━━━━━━━━━━━━━━━━\n\n안녕! 나는 SPARK야 🚀\n\n2025년 목표:\n예비창업패키지 준비 완료!\n\n매주 작은 도전과제로\n조금씩 완성해가자.\n\n먼저, 이름이 뭐야? 😊",
+        text: `━━━━━━━━━━━━━━━━━━━━\n    ✨ SPARK ✨\n  창업 준비 실행 코치\n━━━━━━━━━━━━━━━━━━━━\n\n안녕 ${username}! 나는 SPARK야 🚀\n\n2025년 목표:\n예비창업패키지 준비 완료!\n\n매주 작은 도전과제로\n조금씩 완성해가자.\n\n오늘은 어떤 이야기를 나눠볼까? 😊`,
         sender: 'spark',
         timestamp: new Date()
       };
       setMessages([initialMessage]);
     }
-  }, [isSetup]);
+  }, [isLoggedIn, username]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -85,6 +67,56 @@ export default function SparkSimple() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // 로그인 처리
+  const handleLogin = async () => {
+    setLoginError('');
+    
+    try {
+      const response = await fetch('/api/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: loginUsername,
+          password: loginPassword
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setToken(data.token);
+        setUsername(data.username);
+        setIsLoggedIn(true);
+        
+        // 로컬스토리지에 저장
+        localStorage.setItem('spark-token', data.token);
+        localStorage.setItem('spark-username', data.username);
+        
+        setLoginUsername('');
+        setLoginPassword('');
+      } else {
+        setLoginError(data.error || '로그인 실패');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setLoginError('서버 연결 오류');
+    }
+  };
+
+  // 로그아웃
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setToken('');
+    setUsername('');
+    setMessages([]);
+    setConversationHistory([]);
+    setTodos([]);
+    localStorage.removeItem('spark-token');
+    localStorage.removeItem('spark-username');
+  };
 
   // 도전과제 추출
   const extractTodoFromMessage = (text) => {
@@ -132,7 +164,7 @@ export default function SparkSimple() {
         },
         body: JSON.stringify({
           messages: newHistory,
-          apiKey: apiKey
+          token: token  // API 키 대신 토큰 전송
         })
       });
 
@@ -164,15 +196,7 @@ export default function SparkSimple() {
 
     } catch (error) {
       console.error('Claude API 에러:', error);
-      return `앗, 문제가 생겼어 😅\n\n에러: ${error.message}\n\nAPI 키가 올바른지 확인해줘!`;
-    }
-  };
-
-  const handleSetup = () => {
-    if (apiKey.startsWith('sk-ant-api03-')) {
-      setIsSetup(true);
-    } else {
-      alert('올바른 API 키 형식이 아니에요!\nsk-ant-api03-로 시작해야 해요.');
+      return `앗, 문제가 생겼어 😅\n\n에러: ${error.message}`;
     }
   };
 
@@ -207,11 +231,14 @@ export default function SparkSimple() {
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      if (!isLoggedIn) {
+        handleLogin();
+      } else {
+        handleSend();
+      }
     }
   };
 
-  // 투두 추가
   const addTodo = () => {
     if (pendingTodo) {
       const newTodo = {
@@ -223,7 +250,6 @@ export default function SparkSimple() {
       setTodos([newTodo, ...todos]);
       setPendingTodo(null);
 
-      // 확인 메시지
       const confirmMessage = {
         id: messages.length + 1,
         text: '✅ 투두리스트에 추가했어!\n\n우측 상단 버튼으로 확인해봐!',
@@ -234,19 +260,18 @@ export default function SparkSimple() {
     }
   };
 
-  // 투두 삭제
   const deleteTodo = (id) => {
     setTodos(todos.filter(todo => todo.id !== id));
   };
 
-  // 투두 완료 토글
   const toggleTodo = (id) => {
     setTodos(todos.map(todo => 
       todo.id === id ? { ...todo, completed: !todo.completed } : todo
     ));
   };
 
-  if (!isSetup) {
+  // 로그인 화면
+  if (!isLoggedIn) {
     return (
       <div className="h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-orange-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{animationDuration: '8s'}}></div>
@@ -266,48 +291,68 @@ export default function SparkSimple() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">
-                Claude API Key 입력
+                아이디
               </label>
               <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-ant-api03-..."
+                type="text"
+                value={loginUsername}
+                onChange={(e) => setLoginUsername(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="아이디를 입력하세요"
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all"
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                비밀번호
+              </label>
+              <input
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="비밀번호를 입력하세요"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100 transition-all"
+              />
+            </div>
+
+            {loginError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                {loginError}
+              </div>
+            )}
+
             <button
-              onClick={handleSetup}
-              disabled={!apiKey}
+              onClick={handleLogin}
+              disabled={!loginUsername || !loginPassword}
               className={`w-full py-3 rounded-xl font-bold transition-all shadow-lg ${
-                apiKey
+                loginUsername && loginPassword
                   ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             >
-              시작하기 🚀
+              로그인 🚀
             </button>
           </div>
 
           <div className="mt-6 p-4 bg-orange-50 rounded-xl">
             <p className="text-xs text-gray-600 leading-relaxed">
-              <strong>API 키 받는 방법:</strong><br/>
-              1. console.anthropic.com 접속<br/>
-              2. 로그인 후 "API Keys" 클릭<br/>
-              3. "Create Key" 버튼<br/>
-              4. 여기에 붙여넣기!
+              <strong>테스트 계정:</strong><br/>
+              아이디: admin<br/>
+              비밀번호: spark2025!
             </p>
           </div>
 
           <p className="text-center text-xs text-gray-500 mt-4">
-            API 키는 안전하게 브라우저에만 저장돼요
+            관리자에게 계정을 요청하세요
           </p>
         </div>
       </div>
     );
   }
 
+  // 메인 화면
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 relative overflow-hidden">
       <div className="absolute top-0 right-0 w-96 h-96 bg-orange-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style={{animationDuration: '8s'}}></div>
@@ -325,7 +370,7 @@ export default function SparkSimple() {
                 <h1 className="text-2xl font-black tracking-tight bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 bg-clip-text text-transparent">
                   SPARK
                 </h1>
-                <p className="text-xs text-gray-600 font-medium">AI 창업 코치</p>
+                <p className="text-xs text-gray-600 font-medium">안녕, {username}!</p>
               </div>
             </div>
 
@@ -345,10 +390,13 @@ export default function SparkSimple() {
                 )}
               </button>
 
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-orange-100 to-red-100 rounded-full">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-xs font-bold text-gray-700">연결됨</span>
-              </div>
+              <button
+                onClick={handleLogout}
+                className="p-2 text-gray-600 hover:text-red-600 transition-colors"
+                title="로그아웃"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
             </div>
           </div>
         </div>
@@ -456,7 +504,6 @@ export default function SparkSimple() {
             </div>
           ))}
 
-          {/* 투두 추가 제안 */}
           {pendingTodo && (
             <div className="flex justify-center animate-fadeIn">
               <div className="bg-orange-50/90 backdrop-blur-sm border-2 border-orange-200 rounded-2xl px-5 py-4 max-w-md shadow-lg">
