@@ -11,7 +11,7 @@ const USERS = {
 };
 
 // 실제 Claude API 키 (환경변수로 관리)
-const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
+const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY || 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;
 
 export default async function handler(req, res) {
   // CORS 설정
