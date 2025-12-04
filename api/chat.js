@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     }
 
     // 환경변수에서 API 키 가져오기 (없으면 하드코딩된 키 사용)
-    const apiKey = process.env.CLAUDE_API_KEY || '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';
+    const apiKey = process.env.CLAUDE_API_KEY;
 
     const SYSTEM_PROMPT = "당신은 SPARK, 예비창업패키지 준비자들에게 구체적 도전과제를 주는 실행 코치입니다.\n\n" +
       "# 핵심 정체성\n\n" +
