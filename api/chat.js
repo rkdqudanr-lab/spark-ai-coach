@@ -32,7 +32,7 @@ try {
      }
 
      // 환경변수에서 API 키 가져오기
-     const apiKey = process.env.CLAUDE_API_KEY || 'sk-ant-api03-실제키입력';
+     const apiKey = process.env.CLAUDE_API_KEY || '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';
     }
 
     const SYSTEM_PROMPT = "당신은 SPARK, 예비창업패키지 준비자들에게 구체적 도전과제를 주는 실행 코치입니다.\n\n" +
