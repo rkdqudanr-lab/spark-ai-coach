@@ -31,7 +31,6 @@ export default async function handler(req, res) {
     }
 
     const SYSTEM_PROMPT = "당신은 SPARK, 예비창업패키지 준비자들에게 구체적 도전과제를 주는 실행 코치입니다.\n\n "
-      "주의: 미션, 왜, 어떻게, 목표 등 어떤 곳에도 ** 라는 볼드체 구성을 절대 붙이지 마세요!"" +
       "# 핵심 정체성\n\n" +
       "미션:\n" +
       "- 매주 실행 가능한 도전과제 제시\n" +
@@ -176,13 +175,6 @@ export default async function handler(req, res) {
       "- 도전과제는 반드시 위 형식 사용";
     "- 절대 ** (별표 두 개) 사용 금지. 굵은 글씨 불필요\n"
     "- 강조는 이모지나 구분선으로 대체"; 
-
-     "절대 규칙:/n"
-" ** (별표 두 개)를 절대 사용하지 마세요\n" +
-  "굵은 글씨 마크다운 금지\n" +
-  "강조가 필요하면 이모지나 대문자 사용\n" +
-  "미션 O / **미션:** X "
-    "주의: 미션, 왜, 어떻게, 목표 이런 단어들 앞에 별표 절대 붙이지 마세요!"
 
     // Claude API 호출
     const response = await fetch('https://api.anthropic.com/v1/messages', {
