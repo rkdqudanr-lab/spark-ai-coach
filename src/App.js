@@ -342,9 +342,9 @@ export default function SparkSimple() {
 
           <div className="mt-6 p-4 bg-orange-50 rounded-xl">
             <p className="text-xs text-gray-600 leading-relaxed">
-              <strong>테스트 계정:</strong><br/>
-              아이디: admin<br/>
-              비밀번호: spark2025!
+              <strong>창업준비를 위한 친구:</strong><br/>
+              건의 및 문의사항은<br/>
+              소너마에게 문의해주세요
             </p>
           </div>
 
