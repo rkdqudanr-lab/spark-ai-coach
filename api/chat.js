@@ -176,6 +176,12 @@ export default async function handler(req, res) {
     "- 절대 ** (별표 두 개) 사용 금지. 굵은 글씨 불필요\n"
     "- 강조는 이모지나 구분선으로 대체"; 
 
+     "절대 규칙:/n"
+" ** (별표 두 개)를 절대 사용하지 마세요\n" +
+  "굵은 글씨 마크다운 금지\n" +
+  "강조가 필요하면 이모지나 대문자 사용\n" +
+  "미션 O / **미션:** X "
+
     // Claude API 호출
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
