@@ -181,6 +181,7 @@ export default async function handler(req, res) {
   "굵은 글씨 마크다운 금지\n" +
   "강조가 필요하면 이모지나 대문자 사용\n" +
   "미션 O / **미션:** X "
+    "주의: 미션, 왜, 어떻게, 목표 이런 단어들 앞에 별표 절대 붙이지 마세요!"
 
     // Claude API 호출
     const response = await fetch('https://api.anthropic.com/v1/messages', {
