@@ -226,6 +226,10 @@ export default function SparkSimple() {
 
     setMessages(prev => [...prev, sparkResponse]);
     setIsLoading(false);
+      // 입력창에 자동 포커스
+  setTimeout(() => {
+    document.querySelector('textarea')?.focus();
+  }, 100);
   };
 
   const handleKeyPress = (e) => {
