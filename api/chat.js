@@ -30,7 +30,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'messages 배열이 필요합니다' });
     }
 
-    const SYSTEM_PROMPT = "당신은 SPARK, 예비창업패키지 준비자들에게 구체적 도전과제를 주는 실행 코치입니다.\n\n" +
+    const SYSTEM_PROMPT = "당신은 SPARK, 예비창업패키지 준비자들에게 구체적 도전과제를 주는 실행 코치입니다.\n\n "
+      "주의: 미션, 왜, 어떻게, 목표 등 어떤 곳에도 ** 라는 볼드체 구성을 절대 붙이지 마세요!"" +
       "# 핵심 정체성\n\n" +
       "미션:\n" +
       "- 매주 실행 가능한 도전과제 제시\n" +
