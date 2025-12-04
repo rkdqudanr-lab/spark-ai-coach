@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Zap, Loader } from 'lucide-react';
+import { Send, Zap, Loader, CheckSquare, Plus, Trash2, Check } from 'lucide-react';
 
 export default function SparkSimple() {
   const [messages, setMessages] = useState([]);
@@ -8,6 +8,9 @@ export default function SparkSimple() {
   const [conversationHistory, setConversationHistory] = useState([]);
   const [apiKey, setApiKey] = useState('');
   const [isSetup, setIsSetup] = useState(false);
+  const [showTodos, setShowTodos] = useState(false);
+  const [todos, setTodos] = useState([]);
+  const [pendingTodo, setPendingTodo] = useState(null);
   const messagesEndRef = useRef(null);
 
   const SYSTEM_PROMPT = `당신은 SPARK, 예비창업패키지 준비자들에게 구체적 도전과제를 주는 실행 코치입니다.
@@ -27,15 +30,15 @@ export default function SparkSimple() {
 🎯 이번 주 도전과제 #N
 ━━━━━━━━━━━━━━━━━━━━
 
-**미션:** [구체적 제목]
+미션: [구체적 제목]
 
-**어떻게:**
+어떻게:
 1. [단계 1]
 2. [단계 2]
 3. [단계 3]
 
-**목표:** [기한]
-**시간:** [소요시간]
+목표: [기한]
+시간: [소요시간]
 
 ━━━━━━━━━━━━━━━━━━━━
 
@@ -47,6 +50,21 @@ export default function SparkSimple() {
 - 사업계획서 1페이지 작성
 
 친근하게, 이모지 활용 (😊🚀💪🎯)`;
+
+  // 로컬스토리지에서 투두 불러오기
+  useEffect(() => {
+    const savedTodos = localStorage.getItem('spark-todos');
+    if (savedTodos) {
+      setTodos(JSON.parse(savedTodos));
+    }
+  }, []);
+
+  // 투두 저장
+  useEffect(() => {
+    if (todos.length > 0) {
+      localStorage.setItem('spark-todos', JSON.stringify(todos));
+    }
+  }, [todos]);
 
   useEffect(() => {
     if (isSetup) {
@@ -68,14 +86,45 @@ export default function SparkSimple() {
     scrollToBottom();
   }, [messages]);
 
-const callClaudeAPI = async (userMessage) => {
+  // 도전과제 추출
+  const extractTodoFromMessage = (text) => {
+    if (!text.includes('🎯 이번 주 도전과제')) return null;
+
+    const lines = text.split('\n');
+    let title = '';
+    let description = '';
+    let deadline = '';
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.startsWith('미션:')) {
+        title = line.replace('미션:', '').trim();
+      }
+      if (line.startsWith('어떻게:')) {
+        const steps = [];
+        for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+          const step = lines[j].trim();
+          if (step && (step.match(/^\d\./) || step.startsWith('-'))) {
+            steps.push(step);
+          }
+        }
+        description = steps.join('\n');
+      }
+      if (line.startsWith('목표:')) {
+        deadline = line.replace('목표:', '').trim();
+      }
+    }
+
+    return title ? { title, description, deadline } : null;
+  };
+
+  const callClaudeAPI = async (userMessage) => {
     try {
       const newHistory = [
         ...conversationHistory,
         { role: 'user', content: userMessage }
       ];
 
-      // Vercel Serverless Function 호출
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -104,6 +153,12 @@ const callClaudeAPI = async (userMessage) => {
         ...newHistory,
         { role: 'assistant', content: assistantMessage }
       ]);
+
+      // 도전과제 자동 감지
+      const todoData = extractTodoFromMessage(assistantMessage);
+      if (todoData) {
+        setPendingTodo(todoData);
+      }
 
       return assistantMessage;
 
@@ -154,6 +209,41 @@ const callClaudeAPI = async (userMessage) => {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  // 투두 추가
+  const addTodo = () => {
+    if (pendingTodo) {
+      const newTodo = {
+        id: Date.now(),
+        ...pendingTodo,
+        completed: false,
+        createdAt: new Date().toISOString()
+      };
+      setTodos([newTodo, ...todos]);
+      setPendingTodo(null);
+
+      // 확인 메시지
+      const confirmMessage = {
+        id: messages.length + 1,
+        text: '✅ 투두리스트에 추가했어!\n\n우측 상단 버튼으로 확인해봐!',
+        sender: 'spark',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, confirmMessage]);
+    }
+  };
+
+  // 투두 삭제
+  const deleteTodo = (id) => {
+    setTodos(todos.filter(todo => todo.id !== id));
+  };
+
+  // 투두 완료 토글
+  const toggleTodo = (id) => {
+    setTodos(todos.map(todo => 
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    ));
   };
 
   if (!isSetup) {
@@ -239,13 +329,108 @@ const callClaudeAPI = async (userMessage) => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-orange-100 to-red-100 rounded-full">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-xs font-bold text-gray-700">연결됨</span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowTodos(!showTodos)}
+                className="relative px-4 py-2 bg-gradient-to-r from-orange-100 to-red-100 rounded-full hover:from-orange-200 hover:to-red-200 transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <CheckSquare className="w-4 h-4 text-orange-600" />
+                  <span className="text-xs font-bold text-gray-700">도전과제</span>
+                </div>
+                {todos.filter(t => !t.completed).length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                    {todos.filter(t => !t.completed).length}
+                  </span>
+                )}
+              </button>
+
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-orange-100 to-red-100 rounded-full">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-xs font-bold text-gray-700">연결됨</span>
+              </div>
             </div>
           </div>
         </div>
       </header>
+
+      {/* 투두리스트 사이드바 */}
+      {showTodos && (
+        <div className="absolute top-0 right-0 w-80 h-full bg-white/95 backdrop-blur-md shadow-2xl z-50 border-l border-gray-200">
+          <div className="h-full flex flex-col">
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-bold text-gray-800">📋 도전과제</h2>
+                <button
+                  onClick={() => setShowTodos(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              {todos.length > 0 && (
+                <div className="flex items-center justify-between text-xs text-gray-600">
+                  <span>전체 {todos.length}개</span>
+                  <span className="text-green-600 font-bold">완료 {todos.filter(t => t.completed).length}개</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {todos.length === 0 ? (
+                <div className="text-center py-12">
+                  <CheckSquare className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm text-gray-500">아직 도전과제가 없어요</p>
+                  <p className="text-xs text-gray-400 mt-1">SPARK와 대화해보세요!</p>
+                </div>
+              ) : (
+                todos.map((todo) => (
+                  <div
+                    key={todo.id}
+                    className={`p-3 rounded-xl border-2 transition-all ${
+                      todo.completed
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-white border-gray-200 hover:border-orange-300'
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <button
+                        onClick={() => toggleTodo(todo.id)}
+                        className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                          todo.completed
+                            ? 'bg-green-500 border-green-500'
+                            : 'border-gray-300 hover:border-orange-500'
+                        }`}
+                      >
+                        {todo.completed && <Check className="w-3 h-3 text-white" />}
+                      </button>
+
+                      <div className="flex-1 min-w-0">
+                        <h3 className={`text-sm font-semibold ${todo.completed ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
+                          {todo.title}
+                        </h3>
+                        {todo.description && (
+                          <p className="text-xs text-gray-600 mt-1 whitespace-pre-wrap">
+                            {todo.description}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">⏰ {todo.deadline}</p>
+                      </div>
+
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        className="flex-shrink-0 text-gray-400 hover:text-red-500"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="relative z-10 flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-3xl mx-auto space-y-4">
@@ -270,6 +455,36 @@ const callClaudeAPI = async (userMessage) => {
               </div>
             </div>
           ))}
+
+          {/* 투두 추가 제안 */}
+          {pendingTodo && (
+            <div className="flex justify-center animate-fadeIn">
+              <div className="bg-orange-50/90 backdrop-blur-sm border-2 border-orange-200 rounded-2xl px-5 py-4 max-w-md shadow-lg">
+                <p className="text-sm font-bold text-orange-800 mb-3">
+                  📝 이 도전과제를 저장할까?
+                </p>
+                <div className="bg-white rounded-xl p-3 mb-3">
+                  <p className="text-sm font-semibold text-gray-800">{pendingTodo.title}</p>
+                  <p className="text-xs text-gray-500 mt-1">⏰ {pendingTodo.deadline}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={addTodo}
+                    className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 text-white py-2 rounded-lg text-sm font-bold hover:from-orange-600 hover:to-red-600 transition-all flex items-center justify-center gap-1"
+                  >
+                    <Plus className="w-4 h-4" />
+                    추가
+                  </button>
+                  <button
+                    onClick={() => setPendingTodo(null)}
+                    className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg text-sm font-bold hover:bg-gray-300 transition-all"
+                  >
+                    나중에
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           
           {isLoading && (
             <div className="flex justify-start animate-fadeIn">
@@ -314,7 +529,7 @@ const callClaudeAPI = async (userMessage) => {
             </button>
           </div>
           <p className="text-center text-xs text-gray-500 mt-2 font-medium">
-            소너마 AI가 맞춤 도전과제를 만들어줘요 🚀
+            Claude AI가 맞춤 도전과제를 만들어줘요 🚀
           </p>
         </div>
       </footer>
