@@ -576,7 +576,7 @@ export default function SparkSimple() {
             </button>
           </div>
           <p className="text-center text-xs text-gray-500 mt-2 font-medium">
-            Claude AI가 맞춤 도전과제를 만들어줘요 🚀
+            소너마 AI가 맞춤 도전과제를 만들어줘요 🚀
           </p>
         </div>
       </footer>
