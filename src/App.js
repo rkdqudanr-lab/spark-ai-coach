@@ -1,4 +1,4 @@
-// src/App.js - Supabase 버전 (서버에서 API 키 관리)
+// src/App.js - Supabase 버전 (기존 api/chat.js 호환)
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Sparkles, CheckCircle, Circle, Trophy, LogOut, Menu, X } from 'lucide-react';
 import { 
@@ -10,7 +10,7 @@ import {
 function App() {
   // 인증 상태
   const [user, setUser] = useState(null);
-  const [isLogin, setIsLogin] = useState(true); // true: 로그인, false: 회원가입
+  const [isLogin, setIsLogin] = useState(true);
   
   // 폼 상태
   const [username, setUsername] = useState('');
@@ -58,7 +58,6 @@ function App() {
       setChallenges(chals);
       setUserStats(stats);
       
-      // 가장 최근 대화 선택
       if (convs.length > 0) {
         await loadConversation(convs[0].id);
       }
@@ -100,7 +99,6 @@ function App() {
     setAuthLoading(false);
 
     if (result.success) {
-      // 자동 로그인
       const loginResult = await authHelpers.signIn(username, password);
       if (loginResult.success) {
         setUser(loginResult.user);
@@ -160,7 +158,6 @@ function App() {
     setIsLoading(true);
 
     try {
-      // 대화가 없으면 생성
       let convId = currentConversationId;
       if (!convId) {
         const conv = await conversationHelpers.createConversation(user.id);
@@ -169,12 +166,11 @@ function App() {
         setConversations([conv, ...conversations]);
       }
 
-      // 사용자 메시지 저장 및 표시
       await conversationHelpers.addMessage(convId, 'user', userMessage);
       const newMessages = [...messages, { role: 'user', content: userMessage }];
       setMessages(newMessages);
 
-      // 서버 API 호출 (Vercel Function)
+      // 기존 api/chat.js 호출 (token 포함)
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -182,7 +178,7 @@ function App() {
         },
         body: JSON.stringify({
           messages: newMessages,
-          system: SPARK_SYSTEM_PROMPT
+          token: user.id  // 기존 API는 token 필요
         })
       });
 
@@ -193,11 +189,9 @@ function App() {
       const data = await response.json();
       const assistantMessage = data.message;
 
-      // 어시스턴트 메시지 저장 및 표시
       await conversationHelpers.addMessage(convId, 'assistant', assistantMessage);
       setMessages([...newMessages, { role: 'assistant', content: assistantMessage }]);
 
-      // 도전과제 감지
       if (assistantMessage.includes('🎯 이번 주 도전과제')) {
         await extractAndSaveChallenge(convId, assistantMessage);
       }
@@ -213,7 +207,6 @@ function App() {
   // 도전과제 추출 및 저장
   const extractAndSaveChallenge = async (conversationId, message) => {
     try {
-      // 간단한 파싱
       const titleMatch = message.match(/미션: (.+)/);
       const title = titleMatch ? titleMatch[1] : '새 도전과제';
       
@@ -229,7 +222,6 @@ function App() {
 
       setChallenges([challenge, ...challenges]);
       
-      // 통계 업데이트
       const stats = await challengeHelpers.getUserStats(user.id);
       setUserStats(stats);
     } catch (error) {
@@ -242,7 +234,6 @@ function App() {
     try {
       await challengeHelpers.completeChallenge(challengeId);
       
-      // 상태 업데이트
       setChallenges(challenges.map(c => 
         c.id === challengeId ? { ...c, status: 'completed' } : c
       ));
@@ -551,6 +542,5 @@ function App() {
     </div>
   );
 }
-
 
 export default App;
