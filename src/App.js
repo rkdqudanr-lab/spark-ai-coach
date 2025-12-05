@@ -624,6 +624,37 @@ function App() {
                     )}
                   </div>
 
+                  {/* 현재 레벨 도전과제 */}
+                  <div className="bg-gradient-to-r from-orange-50 to-rose-50 rounded-xl p-3 border-2 border-orange-200">
+                    <h4 className="text-xs font-bold text-orange-900 mb-2 flex items-center gap-1">
+                      <Target className="w-3 h-3" />
+                      이번 레벨 도전과제
+                    </h4>
+                    <div className="space-y-1.5">
+                      {currentLevelInfo.requirements.slice(0, 3).map((req, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setInputMessage(`${req}에 대해 알려줘`);
+                          }}
+                          className="w-full text-left text-xs text-gray-700 hover:text-orange-700 hover:bg-orange-100 p-2 rounded-lg transition-all flex items-start gap-2"
+                        >
+                          <Circle className="w-3 h-3 flex-shrink-0 mt-0.5 text-orange-500" />
+                          <span>{req}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowChallengeMenu(true);
+                        setShowStats(false);
+                      }}
+                      className="w-full mt-2 text-xs text-orange-600 hover:text-orange-700 font-semibold text-center"
+                    >
+                      전체 보기 →
+                    </button>
+                  </div>
+
                   {/* 통계 */}
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div className="bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl p-2 border border-orange-300">
@@ -704,23 +735,13 @@ function App() {
       {/* 메인 채팅 영역 */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* 헤더 */}
-        <div className="bg-gradient-to-r from-white/95 to-white/90 backdrop-blur-xl border-b border-orange-200/50 p-4 flex items-center justify-between shadow-lg">
+        <div className="bg-gradient-to-r from-white/95 to-white/90 backdrop-blur-xl border-b border-orange-200/50 p-4 flex items-center shadow-lg">
           <button
             onClick={() => setShowSidebar(true)}
             className="lg:hidden p-2 hover:bg-orange-50 rounded-lg transition-colors"
           >
             <Menu className="w-5 h-5" />
           </button>
-          
-          <div className="flex items-center gap-3 ml-auto">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 via-rose-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
-            <div className="hidden sm:block">
-              <h1 className="font-bold text-lg bg-gradient-to-r from-orange-600 via-rose-600 to-pink-600 bg-clip-text text-transparent">SPARK</h1>
-              <p className="text-xs text-gray-600">함께 성장하는 창업 코치</p>
-            </div>
-          </div>
         </div>
 
         {/* 메시지 */}
