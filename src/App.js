@@ -1,4 +1,4 @@
-// src/App.js - Supabase 버전
+// src/App.js - Supabase 버전 (서버에서 API 키 관리)
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Sparkles, CheckCircle, Circle, Trophy, LogOut, Menu, X } from 'lucide-react';
 import { 
@@ -32,25 +32,16 @@ function App() {
   
   // UI 상태
   const [showSidebar, setShowSidebar] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   
   const messagesEndRef = useRef(null);
 
   // 초기 로드
   useEffect(() => {
     const currentUser = authHelpers.getCurrentUser();
-    const savedApiKey = localStorage.getItem('spark_api_key');
     
     if (currentUser) {
       setUser(currentUser);
       loadUserData(currentUser.id);
-    }
-    
-    if (savedApiKey) {
-      setApiKey(savedApiKey);
-    } else {
-      setShowApiKeyInput(true);
     }
   }, []);
 
@@ -147,14 +138,6 @@ function App() {
     setCurrentConversationId(null);
   };
 
-  // API 키 저장
-  const handleSaveApiKey = () => {
-    if (apiKey.trim()) {
-      localStorage.setItem('spark_api_key', apiKey.trim());
-      setShowApiKeyInput(false);
-    }
-  };
-
   // 새 대화 시작
   const startNewConversation = async () => {
     try {
@@ -191,19 +174,15 @@ function App() {
       const newMessages = [...messages, { role: 'user', content: userMessage }];
       setMessages(newMessages);
 
-      // Claude API 호출
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      // 서버 API 호출 (Vercel Function)
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 2048,
-          system: SPARK_SYSTEM_PROMPT,
-          messages: newMessages
+          messages: newMessages,
+          system: SPARK_SYSTEM_PROMPT
         })
       });
 
@@ -212,7 +191,7 @@ function App() {
       }
 
       const data = await response.json();
-      const assistantMessage = data.content[0].text;
+      const assistantMessage = data.message;
 
       // 어시스턴트 메시지 저장 및 표시
       await conversationHelpers.addMessage(convId, 'assistant', assistantMessage);
@@ -279,50 +258,6 @@ function App() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // API 키 입력 화면
-  if (showApiKeyInput) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500 rounded-full mb-4">
-              <Sparkles className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900">SPARK</h1>
-            <p className="text-gray-600 mt-2">Claude API 키를 입력해주세요</p>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Claude API Key
-              </label>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="sk-ant-api03-..."
-              />
-            </div>
-
-            <button
-              onClick={handleSaveApiKey}
-              disabled={!apiKey.trim()}
-              className="w-full bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50"
-            >
-              시작하기
-            </button>
-
-            <div className="text-xs text-gray-500 text-center">
-              API 키는 브라우저에만 저장되며 안전하게 관리됩니다
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // 로그인/회원가입 화면
   if (!user) {
