@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // ⚠️ 여기에 너의 Supabase 정보 입력!
-const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // 예: https://xxxxx.supabase.co
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // eyJhbGc... 로 시작
+const SUPABASE_URL = 'https://jpwydqfkvhglwmlkesla.supabase.co'; // 예: https://xxxxx.supabase.co
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwd3lkcWZrdmhnbHdtbGtlc2xhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5MTY1NjAsImV4cCI6MjA4MDQ5MjU2MH0.Ry9iQveRW9OlQozQ9QCd7RvWK031VdcSRhZqtYllhWA'; // eyJhbGc... 로 시작
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
