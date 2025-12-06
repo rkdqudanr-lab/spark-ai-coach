@@ -448,8 +448,12 @@ function App() {
       await conversationHelpers.addMessage(convId, 'assistant', assistantMessage);
       setMessages([...newMessages, { role: 'assistant', content: assistantMessage }]);
 
-      // 도전과제 감지
-      if (assistantMessage.includes('🎯 이번 주 도전과제')) {
+      // 도전과제 감지 (개선된 패턴)
+      if (assistantMessage.includes('🎯') && (
+          assistantMessage.includes('도전과제') || 
+          assistantMessage.includes('미션')
+      )) {
+        console.log('✅ 도전과제 감지됨!');
         setPendingChallengeText(assistantMessage);
       }
 
@@ -466,8 +470,24 @@ function App() {
     if (!pendingChallengeText) return;
 
     try {
-      const titleMatch = pendingChallengeText.match(/미션: (.+)/);
-      const title = titleMatch ? titleMatch[1] : '새 도전과제';
+      // 제목 추출 (여러 패턴 시도)
+      let title = '새 도전과제';
+      
+      const titlePatterns = [
+        /미션:\s*(.+)/,
+        /도전과제\s*#\d+:\s*(.+)/,
+        /🎯\s*(.+?)(?:\n|$)/
+      ];
+      
+      for (const pattern of titlePatterns) {
+        const match = pendingChallengeText.match(pattern);
+        if (match && match[1]) {
+          title = match[1].trim();
+          break;
+        }
+      }
+      
+      console.log('📝 도전과제 추가:', title);
       
       const challenge = await challengeHelpers.createChallenge(
         user.id,
@@ -485,8 +505,11 @@ function App() {
       setUserStats({ ...stats, level: actualLevel });
       
       setPendingChallengeText('');
+      
+      alert('✅ 도전과제가 추가되었습니다!');
     } catch (error) {
       console.error('도전과제 저장 실패:', error);
+      alert('도전과제 저장에 실패했습니다: ' + error.message);
     }
   };
 
@@ -790,9 +813,24 @@ function App() {
                     
                     <div className="space-y-2 mb-3">
                       {currentLevelInfo.requirements.map((req, idx) => {
-                        const matchingChallenge = levelChallenges.find(c => 
-                          c.title.includes(req.split(' ')[0]) || c.description.includes(req)
-                        );
+                        // 더 똑똑한 매칭
+                        const matchingChallenge = levelChallenges.find(c => {
+                          const reqWords = req.toLowerCase().split(' ');
+                          const titleLower = c.title.toLowerCase();
+                          const descLower = c.description.toLowerCase();
+                          
+                          // 첫 단어가 포함되어 있거나
+                          if (titleLower.includes(reqWords[0]) || descLower.includes(reqWords[0])) {
+                            return true;
+                          }
+                          
+                          // 주요 키워드가 2개 이상 일치하면
+                          const matchCount = reqWords.filter(word => 
+                            word.length > 2 && (titleLower.includes(word) || descLower.includes(word))
+                          ).length;
+                          
+                          return matchCount >= 2;
+                        });
                         
                         return (
                           <div
@@ -800,7 +838,28 @@ function App() {
                             className="flex items-start gap-2 p-2 rounded-lg hover:bg-orange-100 transition-all duration-200 group"
                           >
                             <button
-                              onClick={() => matchingChallenge && handleToggleChallenge(matchingChallenge.id, matchingChallenge.status)}
+                              onClick={async () => {
+                                if (matchingChallenge) {
+                                  handleToggleChallenge(matchingChallenge.id, matchingChallenge.status);
+                                } else {
+                                  // 매칭 안되면 새로 생성
+                                  try {
+                                    const newChallenge = await challengeHelpers.createChallenge(
+                                      user.id,
+                                      currentConversationId,
+                                      {
+                                        title: req,
+                                        description: req,
+                                        level: userStats.level
+                                      }
+                                    );
+                                    setChallenges([newChallenge, ...challenges]);
+                                    console.log('✅ 필수 과제 추가됨:', req);
+                                  } catch (error) {
+                                    console.error('과제 추가 실패:', error);
+                                  }
+                                }
+                              }}
                               className="mt-0.5"
                             >
                               {matchingChallenge?.status === 'completed' ? (
@@ -1222,15 +1281,18 @@ function App() {
                 </div>
                 
                 {/* 도전과제 추가 버튼 */}
-                {msg.role === 'assistant' && msg.content.includes('🎯 이번 주 도전과제') && (
+                {msg.role === 'assistant' && (msg.content.includes('🎯') && (
+                  msg.content.includes('도전과제') || msg.content.includes('미션')
+                )) && (
                   <button
                     onClick={() => {
                       setPendingChallengeText(msg.content);
                       handleAddChallengeFromChat();
                     }}
-                    className="mt-2 px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs rounded-lg font-semibold hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5"
+                    className="mt-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm rounded-lg font-bold hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 flex items-center gap-2"
                   >
-                    + 도전과제에 추가
+                    <Plus className="w-4 h-4" />
+                    도전과제에 추가
                   </button>
                 )}
               </div>
