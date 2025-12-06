@@ -367,7 +367,7 @@ function App() {
   // 메인 화면
   if (viewMode === 'main') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-100 via-rose-100 to-pink-100">
+      <div className="min-h-screen bg-gradient-to-br from-orange-100 via-rose-100 to-pink-100 overflow-y-auto">
         <div className="max-w-2xl mx-auto p-4 pb-8 space-y-4">
           {/* 헤더 */}
           <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl p-6 animate-slide-down">
