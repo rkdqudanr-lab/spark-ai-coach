@@ -185,6 +185,9 @@ function App() {
   // 뷰 모드
   const [viewMode, setViewMode] = useState('main'); // 'main' | 'chat'
   const [activeChallengeId, setActiveChallengeId] = useState(null);
+  const [hideCompletedChallenges, setHideCompletedChallenges] = useState(false);
+  const [showStartDialog, setShowStartDialog] = useState(false);
+  const [selectedChallenge, setSelectedChallenge] = useState(null);
 
   // 데이터
   const [conversations, setConversations] = useState([]);
@@ -264,27 +267,30 @@ function App() {
     setChallenges([]);
   };
 
-  // 도전과제 클릭 → 채팅 모드
-  const handleChallengeClick = async (challenge) => {
-    const shouldStart = window.confirm(
-      `"${challenge.title}"\n\n이 도전과제에 대해 SPARK와 대화해볼까요?`
-    );
+  // 도전과제 글씨 클릭 → 확인창 표시
+  const handleChallengeTextClick = (challenge) => {
+    setSelectedChallenge(challenge);
+    setShowStartDialog(true);
+  };
+
+  // 도전과제 시작 확인
+  const handleConfirmStart = async () => {
+    if (!selectedChallenge) return;
     
-    if (!shouldStart) return;
-    
-    setActiveChallengeId(challenge.id);
+    setActiveChallengeId(selectedChallenge.id);
     setViewMode('chat');
+    setShowStartDialog(false);
     
     // 새 대화 시작
     const conv = await conversationHelpers.createConversation(
       user.id, 
-      `[도전과제] ${challenge.title}`
+      `[도전과제] ${selectedChallenge.title}`
     );
     setCurrentConversationId(conv.id);
     setConversations([conv, ...conversations]);
     
     // SPARK의 첫 메시지
-    const welcomeMessage = `좋아! "${challenge.title}" 같이 시작해보자! 💪\n\n어디까지 진행했어? 막히는 부분 있어?`;
+    const welcomeMessage = `좋아! "${selectedChallenge.title}" 같이 시작해보자! 💪\n\n어디까지 진행했어? 막히는 부분 있어?`;
     
     await conversationHelpers.addMessage(conv.id, 'assistant', welcomeMessage);
     setMessages([{ role: 'assistant', content: welcomeMessage }]);
@@ -299,7 +305,8 @@ function App() {
       );
       
       if (existing) {
-        handleChallengeClick(existing);
+        setSelectedChallenge(existing);
+        setShowStartDialog(true);
         return;
       }
       
@@ -316,8 +323,9 @@ function App() {
       
       setChallenges(prev => [newChallenge, ...prev]);
       
-      // 바로 대화 시작
-      handleChallengeClick(newChallenge);
+      // 바로 대화 시작 확인
+      setSelectedChallenge(newChallenge);
+      setShowStartDialog(true);
     } catch (error) {
       console.error('도전과제 생성 실패:', error);
     }
@@ -627,12 +635,21 @@ function App() {
 
             {/* 이번 레벨 도전과제 */}
             <div className="bg-gradient-to-r from-orange-50 to-rose-50 rounded-2xl p-4 border-2 border-orange-200 mb-4">
-              <h3 className="text-sm font-bold text-orange-900 mb-3 flex items-center gap-2">
-                <Target className="w-5 h-5" />
-                이번 레벨 도전과제
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-orange-900 flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  이번 레벨 도전과제
+                </h3>
+                <button
+                  onClick={() => setHideCompletedChallenges(!hideCompletedChallenges)}
+                  className="text-xs text-orange-600 hover:text-orange-800 font-medium transition-colors"
+                >
+                  {hideCompletedChallenges ? '완료과제 보이기' : '완료과제 숨기기'}
+                </button>
+              </div>
               
               <div className="space-y-2">
+                {/* 미완료 과제들 (위) */}
                 {currentLevelInfo.requirements.map((req, idx) => {
                   const matchingChallenge = levelChallenges.find(c => {
                     const reqLower = req.toLowerCase();
@@ -649,35 +666,53 @@ function App() {
                     return reqWords.length > 0 && matchCount >= Math.ceil(reqWords.length / 2);
                   });
                   
+                  const isCompleted = matchingChallenge?.status === 'completed';
+                  
+                  // 완료된 것은 나중에 표시
+                  if (isCompleted && !hideCompletedChallenges) return null;
+                  if (isCompleted && hideCompletedChallenges) return null;
+                  
                   return (
-                    <button
-                      key={`req-${userStats.level}-${idx}`}
-                      onClick={() => {
-                        if (matchingChallenge) {
-                          if (matchingChallenge.status === 'completed') {
+                    <div
+                      key={`req-active-${userStats.level}-${idx}`}
+                      className="flex items-center gap-3 p-3 rounded-xl hover:bg-orange-100 transition-all"
+                    >
+                      {/* 체크박스 영역 */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (matchingChallenge) {
                             handleToggleChallenge(matchingChallenge.id);
                           } else {
-                            handleChallengeClick(matchingChallenge);
+                            // 없으면 생성 후 완료
+                            handleRequiredChallengeStart(req);
                           }
-                        } else {
-                          handleRequiredChallengeStart(req);
-                        }
-                      }}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-orange-100 transition-all text-left"
-                    >
-                      {matchingChallenge?.status === 'completed' ? (
-                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                      ) : (
-                        <Circle className="w-5 h-5 text-orange-500 flex-shrink-0" />
-                      )}
-                      <span className="text-sm text-gray-800">{req}</span>
-                    </button>
+                        }}
+                        className="flex-shrink-0"
+                      >
+                        <Circle className="w-5 h-5 text-orange-500" />
+                      </button>
+                      
+                      {/* 글씨 영역 */}
+                      <button
+                        onClick={() => {
+                          if (matchingChallenge) {
+                            handleChallengeTextClick(matchingChallenge);
+                          } else {
+                            handleRequiredChallengeStart(req);
+                          }
+                        }}
+                        className="flex-1 text-left text-sm text-gray-800 hover:text-orange-600 transition-colors"
+                      >
+                        {req}
+                      </button>
+                    </div>
                   );
                 })}
 
-                {/* 추가 도전과제 */}
+                {/* 추가 도전과제 (미완료) */}
                 {levelChallenges.filter(c => {
-                  return !currentLevelInfo.requirements.some(req => {
+                  const isExtra = !currentLevelInfo.requirements.some(req => {
                     const reqLower = req.toLowerCase();
                     const titleLower = c.title.toLowerCase();
                     const descLower = c.description.toLowerCase();
@@ -691,26 +726,138 @@ function App() {
                     
                     return reqWords.length > 0 && matchCount >= Math.ceil(reqWords.length / 2);
                   });
+                  
+                  return isExtra && c.status !== 'completed';
                 }).map(challenge => (
-                  <button
-                    key={challenge.id}
-                    onClick={() => {
-                      if (challenge.status === 'completed') {
-                        handleToggleChallenge(challenge.id);
-                      } else {
-                        handleChallengeClick(challenge);
-                      }
-                    }}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-orange-100 transition-all text-left"
+                  <div
+                    key={`extra-active-${challenge.id}`}
+                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-orange-100 transition-all"
                   >
-                    {challenge.status === 'completed' ? (
-                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                    ) : (
-                      <Circle className="w-5 h-5 text-orange-500 flex-shrink-0" />
-                    )}
-                    <span className="text-sm text-gray-800">{challenge.title}</span>
-                  </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleChallenge(challenge.id);
+                      }}
+                      className="flex-shrink-0"
+                    >
+                      <Circle className="w-5 h-5 text-orange-500" />
+                    </button>
+                    
+                    <button
+                      onClick={() => handleChallengeTextClick(challenge)}
+                      className="flex-1 text-left text-sm text-gray-800 hover:text-orange-600 transition-colors"
+                    >
+                      {challenge.title}
+                    </button>
+                  </div>
                 ))}
+
+                {!hideCompletedChallenges && (
+                  <>
+                    {/* 구분선 (완료 과제가 있을 때만) */}
+                    {(currentLevelInfo.requirements.some((req, idx) => {
+                      const matchingChallenge = levelChallenges.find(c => {
+                        const reqLower = req.toLowerCase();
+                        const titleLower = c.title.toLowerCase();
+                        const descLower = c.description.toLowerCase();
+                        
+                        if (titleLower === reqLower || descLower === reqLower) return true;
+                        
+                        const reqWords = reqLower.split(' ').filter(w => w.length > 2);
+                        const matchCount = reqWords.filter(word => 
+                          titleLower.includes(word) || descLower.includes(word)
+                        ).length;
+                        
+                        return reqWords.length > 0 && matchCount >= Math.ceil(reqWords.length / 2);
+                      });
+                      return matchingChallenge?.status === 'completed';
+                    }) || levelChallenges.some(c => c.status === 'completed')) && (
+                      <div className="border-t border-orange-300 my-3 pt-3">
+                        <p className="text-xs text-orange-600 font-medium mb-2">완료된 과제</p>
+                      </div>
+                    )}
+
+                    {/* 완료된 필수 과제들 (아래) */}
+                    {currentLevelInfo.requirements.map((req, idx) => {
+                      const matchingChallenge = levelChallenges.find(c => {
+                        const reqLower = req.toLowerCase();
+                        const titleLower = c.title.toLowerCase();
+                        const descLower = c.description.toLowerCase();
+                        
+                        if (titleLower === reqLower || descLower === reqLower) return true;
+                        
+                        const reqWords = reqLower.split(' ').filter(w => w.length > 2);
+                        const matchCount = reqWords.filter(word => 
+                          titleLower.includes(word) || descLower.includes(word)
+                        ).length;
+                        
+                        return reqWords.length > 0 && matchCount >= Math.ceil(reqWords.length / 2);
+                      });
+                      
+                      if (!matchingChallenge || matchingChallenge.status !== 'completed') return null;
+                      
+                      return (
+                        <div
+                          key={`req-completed-${userStats.level}-${idx}`}
+                          className="flex items-center gap-3 p-3 rounded-xl hover:bg-green-50 transition-all opacity-60"
+                        >
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleChallenge(matchingChallenge.id);
+                            }}
+                            className="flex-shrink-0"
+                          >
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                          </button>
+                          
+                          <span className="flex-1 text-sm text-gray-600 line-through">
+                            {req}
+                          </span>
+                        </div>
+                      );
+                    })}
+
+                    {/* 완료된 추가 도전과제 */}
+                    {levelChallenges.filter(c => {
+                      const isExtra = !currentLevelInfo.requirements.some(req => {
+                        const reqLower = req.toLowerCase();
+                        const titleLower = c.title.toLowerCase();
+                        const descLower = c.description.toLowerCase();
+                        
+                        if (titleLower === reqLower || descLower === reqLower) return true;
+                        
+                        const reqWords = reqLower.split(' ').filter(w => w.length > 2);
+                        const matchCount = reqWords.filter(word => 
+                          titleLower.includes(word) || descLower.includes(word)
+                        ).length;
+                        
+                        return reqWords.length > 0 && matchCount >= Math.ceil(reqWords.length / 2);
+                      });
+                      
+                      return isExtra && c.status === 'completed';
+                    }).map(challenge => (
+                      <div
+                        key={`extra-completed-${challenge.id}`}
+                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-green-50 transition-all opacity-60"
+                      >
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleChallenge(challenge.id);
+                          }}
+                          className="flex-shrink-0"
+                        >
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                        </button>
+                        
+                        <span className="flex-1 text-sm text-gray-600 line-through">
+                          {challenge.title}
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             </div>
 
@@ -764,6 +911,38 @@ function App() {
             </div>
           )}
         </div>
+
+        {/* 대화 시작 확인 다이얼로그 */}
+        {showStartDialog && selectedChallenge && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">도전과제 시작</h3>
+              <p className="text-gray-700 mb-4">
+                "{selectedChallenge.title}"
+              </p>
+              <p className="text-sm text-gray-600 mb-6">
+                이 도전과제에 대해 SPARK와 대화해볼까요?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowStartDialog(false);
+                    setSelectedChallenge(null);
+                  }}
+                  className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={handleConfirmStart}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+                >
+                  시작하기
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
