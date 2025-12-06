@@ -8,6 +8,76 @@ import {
   supabase
 } from './supabaseClient';
 
+// 에러 경계 컴포넌트
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('앱 에러:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ 
+          minHeight: '100vh', 
+          background: 'linear-gradient(to bottom right, #fed7aa, #fecaca, #fbcfe8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '24px',
+            padding: '40px',
+            maxWidth: '500px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}>
+            <h1 style={{ color: '#dc2626', marginBottom: '20px' }}>⚠️ 오류 발생</h1>
+            <p style={{ marginBottom: '20px', color: '#666' }}>
+              앱을 불러오는 중 문제가 발생했습니다.
+            </p>
+            <div style={{
+              background: '#fef2f2',
+              padding: '15px',
+              borderRadius: '12px',
+              marginBottom: '20px',
+              fontFamily: 'monospace',
+              fontSize: '12px',
+              color: '#991b1b'
+            }}>
+              {this.state.error?.toString()}
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                padding: '12px 24px',
+                background: '#dc2626',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer'
+              }}
+            >
+              새로고침
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 // 레벨 시스템
 const LEVEL_SYSTEM = {
   1: { emoji: "🐣", title: "입문: 창업 세계 탐험", description: "창업이 뭔지 알아가는 단계", color: "from-yellow-400 to-orange-400", bgColor: "from-yellow-50 to-orange-50", requirements: ["창업 관련 영상/기사 5개 읽기", "창업 아이템 브레인스토밍 (10개 이상)", "나만의 강점 3가지 정리"], requiredChallenges: 3 },
@@ -918,4 +988,13 @@ function App() {
   );
 }
 
-export default App;
+// 에러 경계로 감싼 App
+function AppWithErrorBoundary() {
+  return (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  );
+}
+
+export default AppWithErrorBoundary;
