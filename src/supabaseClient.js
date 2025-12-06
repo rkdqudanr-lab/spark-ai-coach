@@ -1,4 +1,4 @@
-// src/supabaseClient.js - 완전 최종 버전
+// src/supabaseClient.js - Supabase Auth 버전
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -8,80 +8,132 @@ const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // ========================================
-// 인증 헬퍼
+// 인증 헬퍼 (Supabase Auth 사용)
 // ========================================
 export const authHelpers = {
   // 회원가입
   signUp: async (username, password, name) => {
     try {
-      // 1. 중복 확인
-      const { data: existing } = await supabase
-        .from('users')
-        .select('id')
-        .eq('username', username)
-        .single();
+      // 1. Supabase Auth로 회원가입
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: `${username}@spark.local`, // 가짜 이메일 (username을 이메일처럼)
+        password: password,
+        options: {
+          data: {
+            username: username,
+            name: name
+          }
+        }
+      });
 
-      if (existing) {
-        return { success: false, error: '이미 존재하는 아이디입니다' };
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('사용자 생성 실패');
+
+      // 2. users 테이블에 정보 저장
+      const { error: userError } = await supabase
+        .from('users')
+        .insert([{
+          id: authData.user.id,
+          username: username,
+          name: name
+        }]);
+
+      if (userError) {
+        // username 중복이면 더 명확한 메시지
+        if (userError.code === '23505') {
+          throw new Error('이미 존재하는 아이디입니다');
+        }
+        throw userError;
       }
 
-      // 2. 사용자 생성
-      const { data, error } = await supabase
-        .from('users')
-        .insert([{ username, password, name }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // 3. 로컬스토리지 저장
-      localStorage.setItem('spark_user', JSON.stringify(data));
-      return { success: true, user: data };
+      return { 
+        success: true, 
+        user: {
+          id: authData.user.id,
+          username: username,
+          name: name
+        }
+      };
     } catch (error) {
       console.error('회원가입 실패:', error);
-      return { success: false, error: error.message };
+      return { 
+        success: false, 
+        error: error.message || '회원가입에 실패했습니다' 
+      };
     }
   },
 
   // 로그인
   signIn: async (username, password) => {
     try {
-      const { data, error } = await supabase
+      // 1. Supabase Auth로 로그인
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: `${username}@spark.local`,
+        password: password
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('로그인 실패');
+
+      // 2. users 테이블에서 사용자 정보 가져오기
+      const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
-        .eq('username', username)
-        .eq('password', password)
+        .eq('id', authData.user.id)
         .single();
 
-      if (error || !data) {
-        return { success: false, error: '아이디 또는 비밀번호가 올바르지 않습니다' };
-      }
+      if (userError) throw userError;
 
-      localStorage.setItem('spark_user', JSON.stringify(data));
-      return { success: true, user: data };
+      return { 
+        success: true, 
+        user: userData
+      };
     } catch (error) {
       console.error('로그인 실패:', error);
-      return { success: false, error: error.message };
+      return { 
+        success: false, 
+        error: '아이디 또는 비밀번호가 올바르지 않습니다' 
+      };
     }
   },
 
   // 로그아웃
-  signOut: () => {
-    localStorage.removeItem('spark_user');
+  signOut: async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (error) {
+      console.error('로그아웃 실패:', error);
+    }
   },
 
-  // 현재 사용자
-  getCurrentUser: () => {
-    const user = localStorage.getItem('spark_user');
-    return user ? JSON.parse(user) : null;
+  // 현재 사용자 (세션에서)
+  getCurrentUser: async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) return null;
+
+      // users 테이블에서 사용자 정보 가져오기
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error) throw error;
+      return userData;
+    } catch (error) {
+      console.error('사용자 정보 가져오기 실패:', error);
+      return null;
+    }
   }
 };
 
 // ========================================
-// 대화 헬퍼
+// 대화 헬퍼 (변경 없음 - RLS가 자동으로 처리)
 // ========================================
 export const conversationHelpers = {
-  // 대화 목록 가져오기
   getConversations: async (userId) => {
     try {
       const { data, error } = await supabase
@@ -98,7 +150,6 @@ export const conversationHelpers = {
     }
   },
 
-  // 대화 생성
   createConversation: async (userId, title = '새 대화') => {
     try {
       const { data, error } = await supabase
@@ -120,7 +171,6 @@ export const conversationHelpers = {
     }
   },
 
-  // 대화 제목 변경
   updateConversationTitle: async (conversationId, newTitle) => {
     try {
       const { error } = await supabase
@@ -139,10 +189,8 @@ export const conversationHelpers = {
     }
   },
 
-  // 대화 삭제
   deleteConversation: async (conversationId) => {
     try {
-      // 메시지도 함께 삭제
       await supabase
         .from('messages')
         .delete()
@@ -161,7 +209,6 @@ export const conversationHelpers = {
     }
   },
 
-  // 메시지 가져오기
   getMessages: async (conversationId) => {
     try {
       const { data, error } = await supabase
@@ -178,7 +225,6 @@ export const conversationHelpers = {
     }
   },
 
-  // 메시지 추가
   addMessage: async (conversationId, role, content) => {
     try {
       const { data, error } = await supabase
@@ -194,7 +240,6 @@ export const conversationHelpers = {
 
       if (error) throw error;
 
-      // 대화 업데이트 시간 갱신
       await supabase
         .from('conversations')
         .update({ updated_at: new Date().toISOString() })
@@ -209,10 +254,9 @@ export const conversationHelpers = {
 };
 
 // ========================================
-// 도전과제 헬퍼
+// 도전과제 헬퍼 (변경 없음 - RLS가 자동으로 처리)
 // ========================================
 export const challengeHelpers = {
-  // 도전과제 목록 가져오기
   getChallenges: async (userId) => {
     try {
       const { data, error } = await supabase
@@ -229,7 +273,6 @@ export const challengeHelpers = {
     }
   },
 
-  // 도전과제 생성
   createChallenge: async (userId, conversationId, challengeData) => {
     try {
       const { data, error } = await supabase
@@ -254,7 +297,6 @@ export const challengeHelpers = {
     }
   },
 
-  // 도전과제 완료
   completeChallenge: async (challengeId) => {
     try {
       const { error } = await supabase
@@ -273,7 +315,6 @@ export const challengeHelpers = {
     }
   },
 
-  // 도전과제 상태 변경
   updateChallengeStatus: async (challengeId, status) => {
     try {
       const updateData = { status };
@@ -297,7 +338,6 @@ export const challengeHelpers = {
     }
   },
 
-  // 사용자 통계
   getUserStats: async (userId) => {
     try {
       const { data, error } = await supabase
@@ -319,7 +359,6 @@ export const challengeHelpers = {
     }
   },
 
-  // 도전과제 삭제
   deleteChallenge: async (challengeId) => {
     try {
       const { error } = await supabase
