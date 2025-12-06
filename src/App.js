@@ -142,26 +142,24 @@ function App() {
   const inputRef = useRef(null);
 
   // 초기 로드
-  useEffect(() => {
-    const initApp = async () => {
-      try {
-        const currentUser = authHelpers.getCurrentUser();
-        if (currentUser) {
-          setUser(currentUser);
-          await loadUserData(currentUser.id);
-        }
-      } catch (error) {
-        console.error('초기 로드 실패:', error);
-        // 잘못된 데이터 삭제
-        localStorage.removeItem('spark_user');
-        setUser(null);
-      } finally {
-        setIsInitialLoading(false);
+useEffect(() => {
+  const initApp = async () => {
+    try {
+      const currentUser = await authHelpers.getCurrentUser();  // await 추가!
+      if (currentUser) {
+        setUser(currentUser);
+        await loadUserData(currentUser.id);
       }
-    };
-    
-    initApp();
-  }, []);
+    } catch (error) {
+      console.error('초기 로드 실패:', error);
+      setUser(null);  // localStorage 제거!
+    } finally {
+      setIsInitialLoading(false);
+    }
+  };
+  
+  initApp();
+}, []);
 
   // 자동 스크롤
   useEffect(() => {
