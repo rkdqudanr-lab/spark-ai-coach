@@ -214,13 +214,13 @@ useEffect(() => {
     }
   };
 
-  const handleLogout = () => {
-    authHelpers.signOut();
-    setUser(null);
-    setViewMode('main');
-    setMessages([]);
-    setChallenges([]);
-  };
+const handleLogout = async () => {  // async 추가!
+  await authHelpers.signOut();  // await 추가!
+  setUser(null);
+  setViewMode('main');
+  setMessages([]);
+  setChallenges([]);
+};
 
   const handleChallengeTextClick = (challenge) => {
     setSelectedChallenge(challenge);
