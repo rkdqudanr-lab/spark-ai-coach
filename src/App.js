@@ -139,6 +139,7 @@ function App() {
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const mainScrollRef = useRef(null);
 
   // 초기 로드
   useEffect(() => {
@@ -153,6 +154,11 @@ function App() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // 맨 위로 스크롤
+  const scrollToTop = () => {
+    mainScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const loadUserData = async (userId) => {
     try {
@@ -710,7 +716,7 @@ function App() {
                           ));
                         }
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-2 hover:bg-orange-200 rounded-lg transition-all"
+                      className="p-2 hover:bg-orange-200 rounded-lg transition-all opacity-70 hover:opacity-100"
                       title="제목 변경"
                     >
                       <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -726,7 +732,7 @@ function App() {
                           setConversations(prev => prev.filter(c => c.id !== conv.id));
                         }
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-100 rounded-lg transition-all"
+                      className="p-2 hover:bg-red-100 rounded-lg transition-all opacity-70 hover:opacity-100"
                       title="삭제"
                     >
                       <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
