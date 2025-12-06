@@ -1,263 +1,387 @@
-// src/supabaseClient.js
+// src/supabaseClient.js - 완전판
+
 import { createClient } from '@supabase/supabase-js';
 
-// ⚠️ 여기에 너의 Supabase 정보 입력!
-const SUPABASE_URL = 'https://jpwydqfkvhglwmlkesla.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwd3lkcWZrdmhnbHdtbGtlc2xhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5MTY1NjAsImV4cCI6MjA4MDQ5MjU2MH0.Ry9iQveRW9OlQozQ9QCd7RvWK031VdcSRhZqtYllhWA';
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// 인증 헬퍼 함수들
+// ========================================
+// 인증 헬퍼
+// ========================================
 export const authHelpers = {
-  // 회원가입
-  async signUp(username, password, name) {
-    try {
-      // 1. 비밀번호 해시 (간단한 방법)
-      const passwordHash = btoa(password); // Base64 인코딩 (실제로는 bcrypt 사용 권장)
-      
-      // 2. 사용자 생성
-      const { data, error } = await supabase
-        .from('users')
-        .insert([{ username, password_hash: passwordHash, name }])
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return { success: true, user: data };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  },
-
   // 로그인
-  async signIn(username, password) {
+  signIn: async (username, password) => {
     try {
-      const passwordHash = btoa(password);
-      
-      const { data, error } = await supabase
+      const { data: users, error } = await supabase
         .from('users')
         .select('*')
         .eq('username', username)
-        .eq('password_hash', passwordHash)
+        .eq('password', password)
         .single();
-      
-      if (error) throw new Error('아이디 또는 비밀번호가 잘못되었습니다');
-      
-      // 로컬스토리지에 저장
+
+      if (error || !users) {
+        return { success: false, error: '아이디 또는 비밀번호가 올바르지 않습니다' };
+      }
+
+      localStorage.setItem('spark_user', JSON.stringify(users));
+      return { success: true, user: users };
+    } catch (error) {
+      return { success: false, error: '로그인 중 오류가 발생했습니다' };
+    }
+  },
+
+  // 회원가입
+  signUp: async (username, password, name) => {
+    try {
+      // 중복 확인
+      const { data: existing } = await supabase
+        .from('users')
+        .select('id')
+        .eq('username', username)
+        .single();
+
+      if (existing) {
+        return { success: false, error: '이미 존재하는 아이디입니다' };
+      }
+
+      // 새 사용자 생성
+      const { data, error } = await supabase
+        .from('users')
+        .insert([{ username, password, name }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
       localStorage.setItem('spark_user', JSON.stringify(data));
-      
       return { success: true, user: data };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: '회원가입 중 오류가 발생했습니다' };
     }
   },
 
   // 로그아웃
-  signOut() {
+  signOut: () => {
     localStorage.removeItem('spark_user');
   },
 
   // 현재 사용자
-  getCurrentUser() {
-    const userJson = localStorage.getItem('spark_user');
-    return userJson ? JSON.parse(userJson) : null;
+  getCurrentUser: () => {
+    const userStr = localStorage.getItem('spark_user');
+    return userStr ? JSON.parse(userStr) : null;
   }
 };
 
-// 대화 관련 함수들
+// ========================================
+// 대화 헬퍼
+// ========================================
 export const conversationHelpers = {
+  // 모든 대화 가져오기
+  getConversations: async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('대화 목록 로드 실패:', error);
+      return [];
+    }
+  },
+
   // 새 대화 생성
-  async createConversation(userId, title = '새 대화') {
-    const { data, error } = await supabase
-      .from('conversations')
-      .insert([{ user_id: userId, title }])
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+  createConversation: async (userId, title = '새 대화') => {
+    try {
+      const { data, error } = await supabase
+        .from('conversations')
+        .insert([{
+          user_id: userId,
+          title: title,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('대화 생성 실패:', error);
+      throw error;
+    }
   },
 
-  // 사용자의 모든 대화 가져오기
-  async getConversations(userId) {
-    const { data, error } = await supabase
-      .from('conversations')
-      .select('*')
-      .eq('user_id', userId)
-      .order('updated_at', { ascending: false });
-    
-    if (error) throw error;
-    return data;
-  },
-
-  // 특정 대화의 메시지 가져오기
-  async getMessages(conversationId) {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true });
-    
-    if (error) throw error;
-    return data;
-  },
-
-  // 메시지 추가
-  async addMessage(conversationId, role, content) {
-    const { data, error } = await supabase
-      .from('messages')
-      .insert([{ conversation_id: conversationId, role, content }])
-      .select()
-      .single();
-    
-    if (error) throw error;
-
-    // 대화 updated_at 업데이트
-    await supabase
-      .from('conversations')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', conversationId);
-    
-    return data;
+  // 대화 제목 변경
+  updateConversationTitle: async (conversationId, newTitle) => {
+    try {
+      const { data, error } = await supabase
+        .from('conversations')
+        .update({ 
+          title: newTitle,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', conversationId)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('제목 변경 실패:', error);
+      throw error;
+    }
   },
 
   // 대화 삭제
-  async deleteConversation(conversationId) {
-    const { error } = await supabase
-      .from('conversations')
-      .delete()
-      .eq('id', conversationId);
-    
-    if (error) throw error;
+  deleteConversation: async (conversationId) => {
+    try {
+      // 먼저 관련 메시지 삭제
+      await supabase
+        .from('messages')
+        .delete()
+        .eq('conversation_id', conversationId);
+      
+      // 대화 삭제
+      const { error } = await supabase
+        .from('conversations')
+        .delete()
+        .eq('id', conversationId);
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('대화 삭제 실패:', error);
+      throw error;
+    }
   },
 
-  // 대화 제목 변경 (NEW!)
-  async updateConversationTitle(conversationId, newTitle) {
-    const { data, error } = await supabase
-      .from('conversations')
-      .update({ 
-        title: newTitle,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', conversationId)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+  // 대화의 메시지 가져오기
+  getMessages: async (conversationId) => {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('메시지 로드 실패:', error);
+      return [];
+    }
+  },
+
+  // 메시지 추가
+  addMessage: async (conversationId, role, content) => {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .insert([{
+          conversation_id: conversationId,
+          role: role,
+          content: content,
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // 대화 updated_at 업데이트
+      await supabase
+        .from('conversations')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', conversationId);
+
+      return data;
+    } catch (error) {
+      console.error('메시지 추가 실패:', error);
+      throw error;
+    }
   }
 };
 
-// 도전과제 관련 함수들
+// ========================================
+// 도전과제 헬퍼
+// ========================================
 export const challengeHelpers = {
-  // 새 도전과제 생성
-  async createChallenge(userId, conversationId, challenge) {
-    const { data, error } = await supabase
-      .from('challenges')
-      .insert([{
-        user_id: userId,
-        conversation_id: conversationId,
-        title: challenge.title,
-        description: challenge.description,
-        level: challenge.level || 1,
-        deadline: challenge.deadline
-      }])
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  },
+  // 모든 도전과제 가져오기
+  getChallenges: async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('challenges')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
 
-  // 사용자의 모든 도전과제 가져오기
-  async getChallenges(userId) {
-    const { data, error } = await supabase
-      .from('challenges')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data;
-  },
-
-  // 도전과제 완료 처리
-  async completeChallenge(challengeId) {
-    const { data, error } = await supabase
-      .from('challenges')
-      .update({ 
-        status: 'completed',
-        completed_at: new Date().toISOString()
-      })
-      .eq('id', challengeId)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  },
-
-  // 도전과제 상태 변경 (NEW!)
-  async updateChallengeStatus(challengeId, status) {
-    const updates = { status };
-    
-    if (status === 'active') {
-      updates.completed_at = null;
-    } else if (status === 'completed') {
-      updates.completed_at = new Date().toISOString();
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('도전과제 로드 실패:', error);
+      return [];
     }
-
-    const { data, error } = await supabase
-      .from('challenges')
-      .update(updates)
-      .eq('id', challengeId)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
   },
 
-  // 도전과제 레벨 변경 (NEW!)
-  async updateChallengeLevel(challengeId, newLevel) {
-    const { data, error } = await supabase
-      .from('challenges')
-      .update({ level: newLevel })
-      .eq('id', challengeId)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+  // 도전과제 생성
+  createChallenge: async (userId, conversationId, challengeData) => {
+    try {
+      const { data, error } = await supabase
+        .from('challenges')
+        .insert([{
+          user_id: userId,
+          conversation_id: conversationId,
+          title: challengeData.title,
+          description: challengeData.description || challengeData.title,
+          level: challengeData.level || 1,
+          status: 'active',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('도전과제 생성 실패:', error);
+      throw error;
+    }
   },
 
-  // 도전과제 건너뛰기
-  async skipChallenge(challengeId) {
-    const { data, error } = await supabase
-      .from('challenges')
-      .update({ status: 'skipped' })
-      .eq('id', challengeId)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
+  // 도전과제 완료
+  completeChallenge: async (challengeId) => {
+    try {
+      const { data, error } = await supabase
+        .from('challenges')
+        .update({ 
+          status: 'completed',
+          completed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', challengeId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('도전과제 완료 실패:', error);
+      throw error;
+    }
+  },
+
+  // 도전과제 상태 변경
+  updateChallengeStatus: async (challengeId, status) => {
+    try {
+      const updateData = {
+        status: status,
+        updated_at: new Date().toISOString()
+      };
+
+      // 완료 해제 시 completed_at 제거
+      if (status === 'active') {
+        updateData.completed_at = null;
+      }
+
+      const { data, error } = await supabase
+        .from('challenges')
+        .update(updateData)
+        .eq('id', challengeId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('도전과제 상태 변경 실패:', error);
+      throw error;
+    }
+  },
+
+  // 도전과제 삭제
+  deleteChallenge: async (challengeId) => {
+    try {
+      const { error } = await supabase
+        .from('challenges')
+        .delete()
+        .eq('id', challengeId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('도전과제 삭제 실패:', error);
+      throw error;
+    }
   },
 
   // 사용자 통계
-  async getUserStats(userId) {
-    const { data: challenges } = await supabase
-      .from('challenges')
-      .select('*')
-      .eq('user_id', userId);
-    
-    if (!challenges) return { total: 0, completed: 0, active: 0 };
+  getUserStats: async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('challenges')
+        .select('status')
+        .eq('user_id', userId);
 
-    return {
-      total: challenges.length,
-      completed: challenges.filter(c => c.status === 'completed').length,
-      active: challenges.filter(c => c.status === 'active').length,
-      level: Math.floor(challenges.filter(c => c.status === 'completed').length / 3) + 1
-    };
+      if (error) throw error;
+
+      const challenges = data || [];
+      const total = challenges.length;
+      const completed = challenges.filter(c => c.status === 'completed').length;
+      const active = challenges.filter(c => c.status === 'active').length;
+
+      return { total, completed, active };
+    } catch (error) {
+      console.error('통계 로드 실패:', error);
+      return { total: 0, completed: 0, active: 0 };
+    }
   }
 };
+
+// ========================================
+// 유틸리티
+// ========================================
+export const utils = {
+  // 날짜 포맷
+  formatDate: (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  },
+
+  // 시간 포맷
+  formatTime: (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('ko-KR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  },
+
+  // 상대 시간 (예: "3일 전")
+  formatRelativeTime: (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now - date;
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days}일 전`;
+    if (hours > 0) return `${hours}시간 전`;
+    if (minutes > 0) return `${minutes}분 전`;
+    return '방금 전';
+  }
+};
+
+export default supabase;
