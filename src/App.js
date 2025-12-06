@@ -366,9 +366,16 @@ function App() {
 
   // 메인 화면
   if (viewMode === 'main') {
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-100 via-rose-100 to-pink-100 overflow-y-auto">
-        <div className="max-w-2xl mx-auto p-4 pb-8 space-y-4">
+      <div 
+        className="min-h-screen bg-gradient-to-br from-orange-100 via-rose-100 to-pink-100"
+        style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+      >
+        <div className="max-w-2xl mx-auto p-4 pb-24 space-y-4">
           {/* 헤더 */}
           <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl p-6 animate-slide-down">
             <div className="flex items-center justify-between mb-4">
@@ -603,25 +610,75 @@ function App() {
             <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl p-6 animate-fade-in">
               <h2 className="text-lg font-bold text-gray-900 mb-4">최근 대화</h2>
               <div className="space-y-2">
-                {conversations.slice(0, 5).map(conv => (
-                  <button
+                {conversations.slice(0, 10).map(conv => (
+                  <div
                     key={conv.id}
-                    onClick={async () => {
-                      setCurrentConversationId(conv.id);
-                      const msgs = await conversationHelpers.getMessages(conv.id);
-                      setMessages(msgs);
-                      setViewMode('chat');
-                      setActiveChallengeId(null);
-                    }}
-                    className="w-full text-left p-3 hover:bg-orange-50 rounded-xl transition-all transform hover:scale-105"
+                    className="group flex items-center gap-2 p-3 hover:bg-orange-50 rounded-xl transition-all"
                   >
-                    <p className="text-sm font-medium text-gray-900 truncate">{conv.title}</p>
-                    <p className="text-xs text-gray-500">{new Date(conv.updated_at).toLocaleDateString('ko-KR')}</p>
-                  </button>
+                    <button
+                      onClick={async () => {
+                        setCurrentConversationId(conv.id);
+                        const msgs = await conversationHelpers.getMessages(conv.id);
+                        setMessages(msgs);
+                        setViewMode('chat');
+                        setActiveChallengeId(null);
+                      }}
+                      className="flex-1 text-left"
+                    >
+                      <p className="text-sm font-medium text-gray-900 truncate">{conv.title}</p>
+                      <p className="text-xs text-gray-500">{new Date(conv.updated_at).toLocaleDateString('ko-KR')}</p>
+                    </button>
+                    
+                    {/* 제목 변경 버튼 */}
+                    <button
+                      onClick={async () => {
+                        const newTitle = prompt('새 제목을 입력하세요:', conv.title);
+                        if (newTitle && newTitle.trim()) {
+                          await conversationHelpers.updateConversationTitle(conv.id, newTitle.trim());
+                          setConversations(prev => prev.map(c => 
+                            c.id === conv.id ? { ...c, title: newTitle.trim() } : c
+                          ));
+                        }
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-2 hover:bg-orange-200 rounded-lg transition-all"
+                      title="제목 변경"
+                    >
+                      <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                    
+                    {/* 삭제 버튼 */}
+                    <button
+                      onClick={async () => {
+                        if (window.confirm('이 대화를 삭제하시겠습니까?')) {
+                          await supabase.from('conversations').delete().eq('id', conv.id);
+                          setConversations(prev => prev.filter(c => c.id !== conv.id));
+                        }
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-100 rounded-lg transition-all"
+                      title="삭제"
+                    >
+                      <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
           )}
+
+          {/* 맨 위로 버튼 */}
+          <button
+            onClick={scrollToTop}
+            className="w-full bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white rounded-2xl p-4 font-bold text-lg hover:shadow-xl transition-all transform hover:scale-105 flex items-center justify-center gap-2"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+            </svg>
+            맨 위로
+          </button>
 
           {/* 대화 시작 확인 다이얼로그 */}
           {showStartDialog && selectedChallenge && (
@@ -732,22 +789,55 @@ function App() {
   }
 
   // 채팅 화면
+  const currentConversation = conversations.find(c => c.id === currentConversationId);
+  
   return (
     <div className="fixed inset-0 flex flex-col bg-gradient-to-br from-orange-100 via-rose-100 to-pink-100">
       {/* 헤더 - 상단 고정 */}
       <div className="flex-shrink-0 bg-white/90 backdrop-blur-xl border-b border-orange-200 shadow-lg">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-4">
-          <button
-            onClick={handleBackToMain}
-            className="p-2 hover:bg-orange-50 rounded-xl transition-all transform hover:scale-110"
-          >
-            <ArrowLeft className="w-6 h-6 text-orange-600" />
-          </button>
-          <div className="flex items-center gap-2 flex-1">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 via-rose-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-              <Sparkles className="w-5 h-5 text-white" />
+        <div className="max-w-2xl mx-auto px-4 py-3">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleBackToMain}
+              className="p-2 hover:bg-orange-50 rounded-xl transition-all transform hover:scale-110"
+            >
+              <ArrowLeft className="w-6 h-6 text-orange-600" />
+            </button>
+            <div className="flex items-center gap-2 flex-1">
+              <div className="w-10 h-10 bg-gradient-to-br from-orange-500 via-rose-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <span className="font-bold text-xl bg-gradient-to-r from-orange-600 via-rose-600 to-pink-600 bg-clip-text text-transparent">SPARK</span>
+                {currentConversation && (
+                  <p className="text-xs text-gray-600 truncate">{currentConversation.title}</p>
+                )}
+              </div>
             </div>
-            <span className="font-bold text-xl bg-gradient-to-r from-orange-600 via-rose-600 to-pink-600 bg-clip-text text-transparent">SPARK</span>
+            
+            {/* 제목 변경 버튼 */}
+            {currentConversationId && (
+              <button
+                onClick={async () => {
+                  const conv = conversations.find(c => c.id === currentConversationId);
+                  if (conv) {
+                    const newTitle = prompt('새 제목을 입력하세요:', conv.title);
+                    if (newTitle && newTitle.trim()) {
+                      await conversationHelpers.updateConversationTitle(currentConversationId, newTitle.trim());
+                      setConversations(prev => prev.map(c => 
+                        c.id === currentConversationId ? { ...c, title: newTitle.trim() } : c
+                      ));
+                    }
+                  }
+                }}
+                className="p-2 hover:bg-orange-50 rounded-xl transition-all"
+                title="제목 변경"
+              >
+                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
       </div>
