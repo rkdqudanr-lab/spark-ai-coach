@@ -487,7 +487,7 @@ function App() {
         }
       }
       
-      console.log('📝 도전과제 추가:', title);
+      console.log('➕ 대화에서 도전과제 추가:', title);
       
       const challenge = await challengeHelpers.createChallenge(
         user.id,
@@ -499,54 +499,106 @@ function App() {
         }
       );
 
-      setChallenges([challenge, ...challenges]);
+      // 즉시 목록 상단에 추가
+      setChallenges(prevChallenges => [challenge, ...prevChallenges]);
+      
+      // 통계 갱신
       const stats = await challengeHelpers.getUserStats(user.id);
       const actualLevel = calculateLevel(stats.completed);
       setUserStats({ ...stats, level: actualLevel });
       
       setPendingChallengeText('');
       
-      alert('✅ 도전과제가 추가되었습니다!');
+      console.log('✅ 도전과제 추가 완료:', challenge.id);
     } catch (error) {
-      console.error('도전과제 저장 실패:', error);
-      alert('도전과제 저장에 실패했습니다: ' + error.message);
+      console.error('❌ 도전과제 저장 실패:', error);
     }
   };
 
   // 도전과제 완료/취소 토글
   const handleToggleChallenge = async (challengeId, currentStatus) => {
+    if (!challengeId) return;
+    
     try {
       const newStatus = currentStatus === 'completed' ? 'active' : 'completed';
+      
+      console.log(`🔄 도전과제 상태 변경: ${challengeId} -> ${newStatus}`);
       
       if (newStatus === 'completed') {
         await challengeHelpers.completeChallenge(challengeId);
       } else {
-        // 취소 로직 (DB에 uncomplete 함수 필요하면 추가)
         await challengeHelpers.updateChallengeStatus(challengeId, 'active');
       }
       
-      setChallenges(challenges.map(c => 
-        c.id === challengeId ? { ...c, status: newStatus } : c
-      ));
+      // 즉시 상태 업데이트
+      setChallenges(prevChallenges => 
+        prevChallenges.map(c => 
+          c.id === challengeId ? { ...c, status: newStatus } : c
+        )
+      );
       
+      // 통계 갱신
       const stats = await challengeHelpers.getUserStats(user.id);
       const actualLevel = calculateLevel(stats.completed);
       setUserStats({ ...stats, level: actualLevel });
+      
+      console.log(`✅ 도전과제 상태 변경 완료`);
     } catch (error) {
-      console.error('도전과제 상태 변경 실패:', error);
+      console.error('❌ 도전과제 상태 변경 실패:', error);
     }
   };
 
   // 도전과제 레벨 변경
   const handleMoveChallengeToLevel = async (challengeId, newLevel) => {
+    if (!challengeId) return;
+    
     try {
+      console.log(`📦 도전과제 이동: ${challengeId} -> Level ${newLevel}`);
+      
       await challengeHelpers.updateChallengeLevel(challengeId, newLevel);
       
-      setChallenges(challenges.map(c => 
-        c.id === challengeId ? { ...c, level: newLevel } : c
-      ));
+      // 즉시 상태 업데이트
+      setChallenges(prevChallenges => 
+        prevChallenges.map(c => 
+          c.id === challengeId ? { ...c, level: newLevel } : c
+        )
+      );
+      
+      console.log(`✅ 도전과제 이동 완료`);
     } catch (error) {
-      console.error('도전과제 레벨 변경 실패:', error);
+      console.error('❌ 도전과제 레벨 변경 실패:', error);
+    }
+  };
+
+  // 필수 과제 생성 (매칭 안될 때)
+  const handleCreateRequiredChallenge = async (requirementText) => {
+    try {
+      console.log(`➕ 필수 과제 생성: ${requirementText}`);
+      
+      const newChallenge = await challengeHelpers.createChallenge(
+        user.id,
+        currentConversationId || null,
+        {
+          title: requirementText,
+          description: requirementText,
+          level: userStats.level
+        }
+      );
+      
+      // 즉시 목록에 추가
+      setChallenges(prevChallenges => [newChallenge, ...prevChallenges]);
+      
+      // 통계 갱신
+      const stats = await challengeHelpers.getUserStats(user.id);
+      const actualLevel = calculateLevel(stats.completed);
+      setUserStats({ ...stats, level: actualLevel });
+      
+      console.log(`✅ 필수 과제 생성 완료:`, newChallenge.id);
+      
+      return newChallenge;
+    } catch (error) {
+      console.error('❌ 필수 과제 생성 실패:', error);
+      return null;
     }
   };
 
@@ -811,56 +863,48 @@ function App() {
                       이번 레벨 도전과제
                     </h4>
                     
+                    {/* 필수 과제 */}
                     <div className="space-y-2 mb-3">
                       {currentLevelInfo.requirements.map((req, idx) => {
-                        // 더 똑똑한 매칭
+                        // 이 필수과제와 매칭되는 실제 도전과제 찾기
                         const matchingChallenge = levelChallenges.find(c => {
-                          const reqWords = req.toLowerCase().split(' ');
+                          const reqLower = req.toLowerCase();
                           const titleLower = c.title.toLowerCase();
                           const descLower = c.description.toLowerCase();
                           
-                          // 첫 단어가 포함되어 있거나
-                          if (titleLower.includes(reqWords[0]) || descLower.includes(reqWords[0])) {
+                          // 정확히 일치하는지 먼저 체크
+                          if (titleLower === reqLower || descLower === reqLower) {
                             return true;
                           }
                           
-                          // 주요 키워드가 2개 이상 일치하면
+                          // 주요 키워드 포함 여부 (2글자 이상 단어)
+                          const reqWords = reqLower.split(' ').filter(w => w.length > 2);
                           const matchCount = reqWords.filter(word => 
-                            word.length > 2 && (titleLower.includes(word) || descLower.includes(word))
+                            titleLower.includes(word) || descLower.includes(word)
                           ).length;
                           
-                          return matchCount >= 2;
+                          // 키워드 절반 이상 매칭
+                          return reqWords.length > 0 && matchCount >= Math.ceil(reqWords.length / 2);
                         });
                         
                         return (
                           <div
-                            key={idx}
+                            key={`req-${userStats.level}-${idx}`}
                             className="flex items-start gap-2 p-2 rounded-lg hover:bg-orange-100 transition-all duration-200 group"
                           >
                             <button
-                              onClick={async () => {
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                
                                 if (matchingChallenge) {
-                                  handleToggleChallenge(matchingChallenge.id, matchingChallenge.status);
+                                  // 매칭된 도전과제가 있으면 토글
+                                  await handleToggleChallenge(matchingChallenge.id, matchingChallenge.status);
                                 } else {
-                                  // 매칭 안되면 새로 생성
-                                  try {
-                                    const newChallenge = await challengeHelpers.createChallenge(
-                                      user.id,
-                                      currentConversationId,
-                                      {
-                                        title: req,
-                                        description: req,
-                                        level: userStats.level
-                                      }
-                                    );
-                                    setChallenges([newChallenge, ...challenges]);
-                                    console.log('✅ 필수 과제 추가됨:', req);
-                                  } catch (error) {
-                                    console.error('과제 추가 실패:', error);
-                                  }
+                                  // 없으면 새로 생성
+                                  await handleCreateRequiredChallenge(req);
                                 }
                               }}
-                              className="mt-0.5"
+                              className="mt-0.5 flex-shrink-0"
                             >
                               {matchingChallenge?.status === 'completed' ? (
                                 <CheckCircle className="w-4 h-4 text-green-600" />
@@ -870,28 +914,38 @@ function App() {
                             </button>
                             <span className="flex-1 text-xs text-gray-700">{req}</span>
                             {matchingChallenge && (
-                              <div className="relative opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="relative opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                                 <button
-                                  onClick={() => setChallengeMenuId(challengeMenuId === matchingChallenge.id ? null : matchingChallenge.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setChallengeMenuId(challengeMenuId === matchingChallenge.id ? null : matchingChallenge.id);
+                                  }}
                                   className="p-1 hover:bg-orange-200 rounded"
                                 >
                                   <MoreVertical className="w-3 h-3 text-gray-600" />
                                 </button>
                                 {challengeMenuId === matchingChallenge.id && (
-                                  <div className="absolute right-0 mt-1 bg-white border-2 border-orange-200 rounded-lg shadow-lg p-2 z-10 whitespace-nowrap">
-                                    <button
-                                      onClick={() => {
-                                        const nextLevel = userStats.level + 1;
-                                        if (nextLevel <= 10) {
-                                          handleMoveChallengeToLevel(matchingChallenge.id, nextLevel);
-                                        }
-                                        setChallengeMenuId(null);
-                                      }}
-                                      className="w-full text-left px-3 py-2 text-xs hover:bg-orange-50 rounded transition-colors"
-                                    >
-                                      다음 레벨로 이동
-                                    </button>
-                                  </div>
+                                  <>
+                                    <div 
+                                      className="fixed inset-0 z-30"
+                                      onClick={() => setChallengeMenuId(null)}
+                                    />
+                                    <div className="absolute right-0 mt-1 bg-white border-2 border-orange-200 rounded-lg shadow-lg p-2 z-40 whitespace-nowrap">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const nextLevel = userStats.level + 1;
+                                          if (nextLevel <= 10) {
+                                            handleMoveChallengeToLevel(matchingChallenge.id, nextLevel);
+                                          }
+                                          setChallengeMenuId(null);
+                                        }}
+                                        className="w-full text-left px-3 py-2 text-xs hover:bg-orange-50 rounded transition-colors"
+                                      >
+                                        다음 레벨로 이동
+                                      </button>
+                                    </div>
+                                  </>
                                 )}
                               </div>
                             )}
@@ -900,19 +954,36 @@ function App() {
                       })}
                     </div>
 
-                    {/* 추가 도전과제 */}
-                    {levelChallenges.filter(c => 
-                      !currentLevelInfo.requirements.some(req => 
-                        c.title.includes(req.split(' ')[0]) || c.description.includes(req)
-                      )
-                    ).map(challenge => (
+                    {/* 추가 도전과제 (대화에서 추가된 것들) */}
+                    {levelChallenges.filter(c => {
+                      // 필수 과제에 매칭되지 않는 것만
+                      return !currentLevelInfo.requirements.some(req => {
+                        const reqLower = req.toLowerCase();
+                        const titleLower = c.title.toLowerCase();
+                        const descLower = c.description.toLowerCase();
+                        
+                        if (titleLower === reqLower || descLower === reqLower) {
+                          return true;
+                        }
+                        
+                        const reqWords = reqLower.split(' ').filter(w => w.length > 2);
+                        const matchCount = reqWords.filter(word => 
+                          titleLower.includes(word) || descLower.includes(word)
+                        ).length;
+                        
+                        return reqWords.length > 0 && matchCount >= Math.ceil(reqWords.length / 2);
+                      });
+                    }).map(challenge => (
                       <div
-                        key={challenge.id}
+                        key={`extra-${challenge.id}`}
                         className="flex items-start gap-2 p-2 rounded-lg hover:bg-orange-100 transition-all duration-200 mb-2 group"
                       >
                         <button
-                          onClick={() => handleToggleChallenge(challenge.id, challenge.status)}
-                          className="mt-0.5"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await handleToggleChallenge(challenge.id, challenge.status);
+                          }}
+                          className="mt-0.5 flex-shrink-0"
                         >
                           {challenge.status === 'completed' ? (
                             <CheckCircle className="w-4 h-4 text-green-600" />
@@ -921,28 +992,38 @@ function App() {
                           )}
                         </button>
                         <span className="flex-1 text-xs text-gray-700">{challenge.title}</span>
-                        <div className="relative opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="relative opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                           <button
-                            onClick={() => setChallengeMenuId(challengeMenuId === challenge.id ? null : challenge.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setChallengeMenuId(challengeMenuId === challenge.id ? null : challenge.id);
+                            }}
                             className="p-1 hover:bg-orange-200 rounded"
                           >
                             <MoreVertical className="w-3 h-3 text-gray-600" />
                           </button>
                           {challengeMenuId === challenge.id && (
-                            <div className="absolute right-0 mt-1 bg-white border-2 border-orange-200 rounded-lg shadow-lg p-2 z-10 whitespace-nowrap">
-                              <button
-                                onClick={() => {
-                                  const nextLevel = userStats.level + 1;
-                                  if (nextLevel <= 10) {
-                                    handleMoveChallengeToLevel(challenge.id, nextLevel);
-                                  }
-                                  setChallengeMenuId(null);
-                                }}
-                                className="w-full text-left px-3 py-2 text-xs hover:bg-orange-50 rounded transition-colors"
-                              >
-                                다음 레벨로 이동
-                              </button>
-                            </div>
+                            <>
+                              <div 
+                                className="fixed inset-0 z-30"
+                                onClick={() => setChallengeMenuId(null)}
+                              />
+                              <div className="absolute right-0 mt-1 bg-white border-2 border-orange-200 rounded-lg shadow-lg p-2 z-40 whitespace-nowrap">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const nextLevel = userStats.level + 1;
+                                    if (nextLevel <= 10) {
+                                      handleMoveChallengeToLevel(challenge.id, nextLevel);
+                                    }
+                                    setChallengeMenuId(null);
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-xs hover:bg-orange-50 rounded transition-colors"
+                                >
+                                  다음 레벨로 이동
+                                </button>
+                              </div>
+                            </>
                           )}
                         </div>
                       </div>
