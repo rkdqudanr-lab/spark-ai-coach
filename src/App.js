@@ -183,7 +183,9 @@ function App() {
   // UI 상태
   const [showSidebar, setShowSidebar] = useState(false);
   const [showStats, setShowStats] = useState(true);
-  const [showTools, setShowTools] = useState(false);
+  const [showTimerSettings, setShowTimerSettings] = useState(false);
+  const [showLinkMenu, setShowLinkMenu] = useState(false);
+  const [challengeMenuId, setChallengeMenuId] = useState(null);
   
   // 뽀모도로 타이머
   const [timerMinutes, setTimerMinutes] = useState(25);
@@ -438,7 +440,10 @@ function App() {
       }
 
       const data = await response.json();
-      const assistantMessage = data.message;
+      let assistantMessage = data.message;
+      
+      // ** 제거 (볼드 마크다운)
+      assistantMessage = assistantMessage.replace(/\*\*/g, '');
 
       await conversationHelpers.addMessage(convId, 'assistant', assistantMessage);
       setMessages([...newMessages, { role: 'assistant', content: assistantMessage }]);
@@ -485,20 +490,40 @@ function App() {
     }
   };
 
-  // 도전과제 완료
-  const handleCompleteChallenge = async (challengeId) => {
+  // 도전과제 완료/취소 토글
+  const handleToggleChallenge = async (challengeId, currentStatus) => {
     try {
-      await challengeHelpers.completeChallenge(challengeId);
+      const newStatus = currentStatus === 'completed' ? 'active' : 'completed';
+      
+      if (newStatus === 'completed') {
+        await challengeHelpers.completeChallenge(challengeId);
+      } else {
+        // 취소 로직 (DB에 uncomplete 함수 필요하면 추가)
+        await challengeHelpers.updateChallengeStatus(challengeId, 'active');
+      }
       
       setChallenges(challenges.map(c => 
-        c.id === challengeId ? { ...c, status: 'completed' } : c
+        c.id === challengeId ? { ...c, status: newStatus } : c
       ));
       
       const stats = await challengeHelpers.getUserStats(user.id);
       const actualLevel = calculateLevel(stats.completed);
       setUserStats({ ...stats, level: actualLevel });
     } catch (error) {
-      console.error('도전과제 완료 실패:', error);
+      console.error('도전과제 상태 변경 실패:', error);
+    }
+  };
+
+  // 도전과제 레벨 변경
+  const handleMoveChallengeToLevel = async (challengeId, newLevel) => {
+    try {
+      await challengeHelpers.updateChallengeLevel(challengeId, newLevel);
+      
+      setChallenges(challenges.map(c => 
+        c.id === challengeId ? { ...c, level: newLevel } : c
+      ));
+    } catch (error) {
+      console.error('도전과제 레벨 변경 실패:', error);
     }
   };
 
@@ -772,10 +797,10 @@ function App() {
                         return (
                           <div
                             key={idx}
-                            className="flex items-start gap-2 p-2 rounded-lg hover:bg-orange-100 transition-all duration-200"
+                            className="flex items-start gap-2 p-2 rounded-lg hover:bg-orange-100 transition-all duration-200 group"
                           >
                             <button
-                              onClick={() => matchingChallenge && handleCompleteChallenge(matchingChallenge.id)}
+                              onClick={() => matchingChallenge && handleToggleChallenge(matchingChallenge.id, matchingChallenge.status)}
                               className="mt-0.5"
                             >
                               {matchingChallenge?.status === 'completed' ? (
@@ -785,6 +810,32 @@ function App() {
                               )}
                             </button>
                             <span className="flex-1 text-xs text-gray-700">{req}</span>
+                            {matchingChallenge && (
+                              <div className="relative opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => setChallengeMenuId(challengeMenuId === matchingChallenge.id ? null : matchingChallenge.id)}
+                                  className="p-1 hover:bg-orange-200 rounded"
+                                >
+                                  <MoreVertical className="w-3 h-3 text-gray-600" />
+                                </button>
+                                {challengeMenuId === matchingChallenge.id && (
+                                  <div className="absolute right-0 mt-1 bg-white border-2 border-orange-200 rounded-lg shadow-lg p-2 z-10 whitespace-nowrap">
+                                    <button
+                                      onClick={() => {
+                                        const nextLevel = userStats.level + 1;
+                                        if (nextLevel <= 10) {
+                                          handleMoveChallengeToLevel(matchingChallenge.id, nextLevel);
+                                        }
+                                        setChallengeMenuId(null);
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-xs hover:bg-orange-50 rounded transition-colors"
+                                    >
+                                      다음 레벨로 이동
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -798,10 +849,10 @@ function App() {
                     ).map(challenge => (
                       <div
                         key={challenge.id}
-                        className="flex items-start gap-2 p-2 rounded-lg hover:bg-orange-100 transition-all duration-200 mb-2"
+                        className="flex items-start gap-2 p-2 rounded-lg hover:bg-orange-100 transition-all duration-200 mb-2 group"
                       >
                         <button
-                          onClick={() => handleCompleteChallenge(challenge.id)}
+                          onClick={() => handleToggleChallenge(challenge.id, challenge.status)}
                           className="mt-0.5"
                         >
                           {challenge.status === 'completed' ? (
@@ -811,6 +862,30 @@ function App() {
                           )}
                         </button>
                         <span className="flex-1 text-xs text-gray-700">{challenge.title}</span>
+                        <div className="relative opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => setChallengeMenuId(challengeMenuId === challenge.id ? null : challenge.id)}
+                            className="p-1 hover:bg-orange-200 rounded"
+                          >
+                            <MoreVertical className="w-3 h-3 text-gray-600" />
+                          </button>
+                          {challengeMenuId === challenge.id && (
+                            <div className="absolute right-0 mt-1 bg-white border-2 border-orange-200 rounded-lg shadow-lg p-2 z-10 whitespace-nowrap">
+                              <button
+                                onClick={() => {
+                                  const nextLevel = userStats.level + 1;
+                                  if (nextLevel <= 10) {
+                                    handleMoveChallengeToLevel(challenge.id, nextLevel);
+                                  }
+                                  setChallengeMenuId(null);
+                                }}
+                                className="w-full text-left px-3 py-2 text-xs hover:bg-orange-50 rounded transition-colors"
+                              >
+                                다음 레벨로 이동
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -927,28 +1002,31 @@ function App() {
           </button>
           
           {/* 추가 기능 버튼 */}
-          <div className="ml-auto relative">
-            <button
-              onClick={() => setShowTools(!showTools)}
-              className="p-2 hover:bg-orange-50 rounded-lg transition-all duration-200"
-            >
-              <MoreVertical className="w-5 h-5 text-gray-600" />
-            </button>
-            
-            {showTools && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border-2 border-orange-200 p-4 z-50 animate-slide-down">
-                <div className="space-y-4">
-                  {/* 뽀모도로 타이머 */}
-                  <div>
-                    <h4 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      뽀모도로 타이머
-                    </h4>
+          <div className="ml-auto flex items-center gap-2">
+            {/* 집중 타이머 */}
+            <div className="relative">
+              <button
+                onClick={() => setShowTimerSettings(!showTimerSettings)}
+                className="p-2 hover:bg-orange-50 rounded-lg transition-all duration-200 flex items-center gap-2"
+                title="집중 타이머"
+              >
+                <Clock className="w-5 h-5 text-gray-600" />
+                <span className="hidden sm:inline text-sm font-medium text-gray-700">집중 타이머</span>
+              </button>
+              
+              {showTimerSettings && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowTimerSettings(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border-2 border-orange-200 p-4 z-50 animate-slide-down">
+                    <h4 className="text-sm font-bold text-gray-900 mb-3">집중 타이머</h4>
                     <div className="bg-gradient-to-r from-orange-50 to-rose-50 rounded-lg p-3 border border-orange-200">
                       <div className="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-orange-600 to-rose-600 bg-clip-text text-transparent">
                         {String(timerMinutes).padStart(2, '0')}:{String(timerSeconds).padStart(2, '0')}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 mb-3">
                         <button
                           onClick={toggleTimer}
                           className="flex-1 bg-gradient-to-r from-orange-500 to-rose-500 text-white py-2 rounded-lg text-sm font-semibold hover:shadow-lg transition-all"
@@ -962,25 +1040,149 @@ function App() {
                           리셋
                         </button>
                       </div>
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-600 font-medium">시간 설정</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[15, 25, 45].map(mins => (
+                            <button
+                              key={mins}
+                              onClick={() => {
+                                setTimerMinutes(mins);
+                                setTimerSeconds(0);
+                                setTimerActive(false);
+                              }}
+                              className={`py-2 rounded-lg text-sm font-semibold transition-all ${
+                                timerMinutes === mins && timerSeconds === 0 && !timerActive
+                                  ? 'bg-orange-500 text-white'
+                                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                              }`}
+                            >
+                              {mins}분
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  
-                  {/* 링크 관리 */}
-                  <div>
-                    <h4 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
-                      <LinkIcon className="w-4 h-4" />
-                      링크 관리
-                    </h4>
-                    <button
-                      onClick={() => setShowLinkManager(true)}
-                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2 rounded-lg text-sm font-semibold hover:shadow-lg transition-all"
-                    >
-                      링크 열기
-                    </button>
+                </>
+              )}
+            </div>
+
+            {/* 링크 관리 */}
+            <div className="relative">
+              <button
+                onClick={() => setShowLinkMenu(!showLinkMenu)}
+                className="p-2 hover:bg-orange-50 rounded-lg transition-all duration-200 flex items-center gap-2"
+                title="링크 관리"
+              >
+                <LinkIcon className="w-5 h-5 text-gray-600" />
+                <span className="hidden sm:inline text-sm font-medium text-gray-700">링크</span>
+              </button>
+              
+              {showLinkMenu && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowLinkMenu(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border-2 border-purple-200 p-4 z-50 animate-slide-down max-h-[80vh] overflow-y-auto">
+                    <h4 className="text-sm font-bold text-gray-900 mb-3">링크 관리</h4>
+                    
+                    {/* 새 링크 추가 */}
+                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-3 mb-3 border border-purple-200">
+                      <p className="text-xs font-semibold text-gray-700 mb-2">새 링크 추가</p>
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          placeholder="링크 이름"
+                          value={newLinkName}
+                          onChange={(e) => setNewLinkName(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-lg text-sm"
+                        />
+                        <input
+                          type="url"
+                          placeholder="URL (https://...)"
+                          value={newLinkUrl}
+                          onChange={(e) => setNewLinkUrl(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-lg text-sm"
+                        />
+                        <div className="flex gap-2">
+                          <select
+                            value={newLinkFolder}
+                            onChange={(e) => setNewLinkFolder(e.target.value)}
+                            className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                          >
+                            {folders.map(folder => (
+                              <option key={folder.id} value={folder.id}>{folder.name}</option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={handleAddLink}
+                            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all"
+                          >
+                            추가
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 새 폴더 추가 */}
+                    <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-3 mb-3 border border-blue-200">
+                      <p className="text-xs font-semibold text-gray-700 mb-2">새 폴더</p>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="폴더 이름"
+                          value={newFolderName}
+                          onChange={(e) => setNewFolderName(e.target.value)}
+                          className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                        />
+                        <button
+                          onClick={handleAddFolder}
+                          className="px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all"
+                        >
+                          <FolderPlus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 링크 목록 */}
+                    <div className="space-y-2">
+                      {folders.map(folder => {
+                        const folderLinks = links.filter(link => link.folderId === folder.id);
+                        if (folderLinks.length === 0) return null;
+                        
+                        return (
+                          <div key={folder.id} className="border border-gray-200 rounded-lg p-2">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Folder className="w-3 h-3 text-orange-600" />
+                              <h5 className="font-semibold text-xs text-gray-900">{folder.name}</h5>
+                            </div>
+                            <div className="space-y-1">
+                              {folderLinks.map(link => (
+                                <a
+                                  key={link.id}
+                                  href={link.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center justify-between p-2 hover:bg-gray-50 rounded transition-colors group"
+                                >
+                                  <span className="text-xs text-gray-700 group-hover:text-orange-600 truncate">{link.name}</span>
+                                  <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-orange-600 flex-shrink-0" />
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {links.length === 0 && (
+                        <p className="text-xs text-gray-500 text-center py-4">추가된 링크가 없습니다</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1109,8 +1311,14 @@ function App() {
 
       {/* 레벨 로드맵 */}
       {showLevelRoadmap && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border-2 border-purple-200 animate-scale-in">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
+          onClick={() => setShowLevelRoadmap(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border-2 border-purple-200 animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-6 sticky top-0 bg-white pb-4 border-b">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
@@ -1187,8 +1395,17 @@ function App() {
 
       {/* 타이머 완료 */}
       {showTimerComplete && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border-2 border-green-200 animate-scale-in text-center">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
+          onClick={() => {
+            setShowTimerComplete(false);
+            resetTimer();
+          }}
+        >
+          <div 
+            className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border-2 border-green-200 animate-scale-in text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full mx-auto mb-4 flex items-center justify-center">
               <CheckCircle className="w-10 h-10 text-white" />
             </div>
@@ -1206,117 +1423,6 @@ function App() {
             >
               확인
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* 링크 관리자 */}
-      {showLinkManager && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border-2 border-purple-200 animate-scale-in">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                  <LinkIcon className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900">링크 관리</h3>
-              </div>
-              <button
-                onClick={() => setShowLinkManager(false)}
-                className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* 새 링크 추가 */}
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 mb-4 border-2 border-purple-200">
-              <h4 className="font-bold text-sm text-gray-900 mb-3">새 링크 추가</h4>
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  placeholder="링크 이름"
-                  value={newLinkName}
-                  onChange={(e) => setNewLinkName(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
-                />
-                <input
-                  type="url"
-                  placeholder="URL (https://...)"
-                  value={newLinkUrl}
-                  onChange={(e) => setNewLinkUrl(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
-                />
-                <div className="flex gap-2">
-                  <select
-                    value={newLinkFolder}
-                    onChange={(e) => setNewLinkFolder(e.target.value)}
-                    className="flex-1 px-3 py-2 border rounded-lg text-sm"
-                  >
-                    {folders.map(folder => (
-                      <option key={folder.id} value={folder.id}>{folder.name}</option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={handleAddLink}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all"
-                  >
-                    추가
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* 새 폴더 추가 */}
-            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 mb-4 border-2 border-blue-200">
-              <h4 className="font-bold text-sm text-gray-900 mb-3">새 폴더</h4>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="폴더 이름"
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  className="flex-1 px-3 py-2 border rounded-lg text-sm"
-                />
-                <button
-                  onClick={handleAddFolder}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all"
-                >
-                  <FolderPlus className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* 링크 목록 */}
-            <div className="space-y-3">
-              {folders.map(folder => {
-                const folderLinks = links.filter(link => link.folderId === folder.id);
-                if (folderLinks.length === 0) return null;
-                
-                return (
-                  <div key={folder.id} className="border-2 border-gray-200 rounded-xl p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Folder className="w-4 h-4 text-orange-600" />
-                      <h5 className="font-bold text-sm text-gray-900">{folder.name}</h5>
-                    </div>
-                    <div className="space-y-1">
-                      {folderLinks.map(link => (
-                        <a
-                          key={link.id}
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors group"
-                        >
-                          <span className="text-sm text-gray-700 group-hover:text-orange-600">{link.name}</span>
-                          <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-orange-600" />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           </div>
         </div>
       )}
