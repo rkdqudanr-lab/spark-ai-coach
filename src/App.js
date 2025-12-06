@@ -4,7 +4,8 @@ import { Send, Sparkles, CheckCircle, Circle, Trophy, LogOut, Menu, X, Eye, EyeO
 import { 
   authHelpers, 
   conversationHelpers, 
-  challengeHelpers 
+  challengeHelpers,
+  supabase
 } from './supabaseClient';
 
 // 레벨 시스템 정의 (이모티콘 추가)
@@ -186,6 +187,7 @@ function App() {
   const [showTimerSettings, setShowTimerSettings] = useState(false);
   const [showLinkMenu, setShowLinkMenu] = useState(false);
   const [challengeMenuId, setChallengeMenuId] = useState(null);
+  const [showCompletedChallenges, setShowCompletedChallenges] = useState(false);
   
   // 뽀모도로 타이머
   const [timerMinutes, setTimerMinutes] = useState(25);
@@ -571,7 +573,7 @@ function App() {
   };
 
   // 필수 과제 생성 (매칭 안될 때)
-  const handleCreateRequiredChallenge = async (requirementText) => {
+  const handleCreateRequiredChallenge = async (requirementText, autoComplete = false) => {
     try {
       console.log(`➕ 필수 과제 생성: ${requirementText}`);
       
@@ -581,7 +583,8 @@ function App() {
         {
           title: requirementText,
           description: requirementText,
-          level: userStats.level
+          level: userStats.level,
+          status: autoComplete ? 'completed' : 'active'
         }
       );
       
@@ -593,7 +596,7 @@ function App() {
       const actualLevel = calculateLevel(stats.completed);
       setUserStats({ ...stats, level: actualLevel });
       
-      console.log(`✅ 필수 과제 생성 완료:`, newChallenge.id);
+      console.log(`✅ 필수 과제 생성 완료:`, newChallenge.id, autoComplete ? '(완료됨)' : '(진행중)');
       
       return newChallenge;
     } catch (error) {
@@ -640,6 +643,34 @@ function App() {
   // 타이머 시작/정지
   const toggleTimer = () => {
     setTimerActive(!timerActive);
+  };
+
+  // 진행상황 초기화
+  const handleResetProgress = async () => {
+    if (!window.confirm('⚠️ 모든 도전과제를 삭제하고 처음부터 시작하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
+      return;
+    }
+
+    try {
+      console.log('🔄 진행상황 초기화 시작...');
+      
+      // 모든 도전과제 삭제
+      for (const challenge of challenges) {
+        await supabase
+          .from('challenges')
+          .delete()
+          .eq('id', challenge.id);
+      }
+      
+      setChallenges([]);
+      setUserStats({ total: 0, completed: 0, active: 0, level: 1 });
+      
+      console.log('✅ 진행상황 초기화 완료');
+      alert('✅ 진행상황이 초기화되었습니다.');
+    } catch (error) {
+      console.error('❌ 초기화 실패:', error);
+      alert('초기화에 실패했습니다: ' + error.message);
+    }
   };
 
   // 타이머 리셋
@@ -900,8 +931,8 @@ function App() {
                                   // 매칭된 도전과제가 있으면 토글
                                   await handleToggleChallenge(matchingChallenge.id, matchingChallenge.status);
                                 } else {
-                                  // 없으면 새로 생성
-                                  await handleCreateRequiredChallenge(req);
+                                  // 없으면 새로 생성 + 즉시 완료 처리
+                                  await handleCreateRequiredChallenge(req, true);
                                 }
                               }}
                               className="mt-0.5 flex-shrink-0"
@@ -1036,15 +1067,26 @@ function App() {
                       <div className="text-xl font-bold text-orange-700">{userStats.total}</div>
                       <div className="text-xs text-orange-700 font-medium">전체</div>
                     </div>
-                    <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-xl p-2 border border-green-300">
+                    <button
+                      onClick={() => setShowCompletedChallenges(true)}
+                      className="bg-gradient-to-br from-green-100 to-green-200 rounded-xl p-2 border border-green-300 hover:shadow-lg transition-all"
+                    >
                       <div className="text-xl font-bold text-green-700">{userStats.completed}</div>
                       <div className="text-xs text-green-700 font-medium">완료</div>
-                    </div>
+                    </button>
                     <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl p-2 border border-blue-300">
                       <div className="text-xl font-bold text-blue-700">{userStats.active}</div>
                       <div className="text-xs text-blue-700 font-medium">진행중</div>
                     </div>
                   </div>
+
+                  {/* 초기화 버튼 */}
+                  <button
+                    onClick={handleResetProgress}
+                    className="w-full mt-2 px-3 py-2 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 rounded-lg text-xs font-medium transition-all border border-gray-300 hover:border-red-300"
+                  >
+                    🔄 진행상황 초기화
+                  </button>
                 </div>
               </div>
             </div>
@@ -1447,6 +1489,70 @@ function App() {
               >
                 삭제
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 완료된 도전과제 */}
+      {showCompletedChallenges && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
+          onClick={() => setShowCompletedChallenges(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border-2 border-green-200 animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6 sticky top-0 bg-white pb-4 border-b">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900">완료된 도전과제</h3>
+              </div>
+              <button
+                onClick={() => setShowCompletedChallenges(false)}
+                className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {challenges.filter(c => c.status === 'completed').length === 0 ? (
+                <p className="text-center text-gray-500 py-8">아직 완료한 도전과제가 없습니다</p>
+              ) : (
+                challenges
+                  .filter(c => c.status === 'completed')
+                  .map(challenge => (
+                    <div
+                      key={challenge.id}
+                      className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border-2 border-green-200 hover:shadow-lg transition-all group"
+                    >
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <h4 className="font-bold text-gray-900 mb-1">{challenge.title}</h4>
+                          <p className="text-xs text-gray-600 mb-2">
+                            Level {challenge.level} • {new Date(challenge.completed_at).toLocaleDateString('ko-KR')}
+                          </p>
+                          {challenge.description !== challenge.title && (
+                            <p className="text-sm text-gray-700 line-clamp-2">{challenge.description}</p>
+                          )}
+                        </div>
+                        <button
+                          onClick={async () => {
+                            await handleToggleChallenge(challenge.id, 'completed');
+                          }}
+                          className="opacity-0 group-hover:opacity-100 px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-semibold transition-all"
+                        >
+                          되돌리기
+                        </button>
+                      </div>
+                    </div>
+                  ))
+              )}
             </div>
           </div>
         </div>
