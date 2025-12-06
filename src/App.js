@@ -1013,9 +1013,9 @@ function App() {
 
   // ====== 채팅 화면 ======
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-orange-100 via-rose-100 to-pink-100">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-orange-100 via-rose-100 to-pink-100" style={{ height: '100vh', maxHeight: '100vh' }}>
       {/* 헤더 */}
-      <div className="bg-white/90 backdrop-blur-xl border-b border-orange-200 shadow-lg">
+      <div className="bg-white/90 backdrop-blur-xl border-b border-orange-200 shadow-lg flex-shrink-0">
         <div className="max-w-2xl mx-auto px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-3 sm:gap-4">
           <button
             onClick={handleBackToMain}
@@ -1033,7 +1033,7 @@ function App() {
       </div>
 
       {/* 메시지 영역 */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4" style={{ minHeight: 0 }}>
         <div className="max-w-2xl mx-auto space-y-3 sm:space-y-4 pb-4">
           {messages.length === 0 && (
             <div className="text-center py-8 sm:py-12">
@@ -1080,7 +1080,7 @@ function App() {
       </div>
 
       {/* 입력 영역 */}
-      <div className="bg-white/90 backdrop-blur-xl border-t border-orange-200 shadow-lg">
+      <div className="bg-white/90 backdrop-blur-xl border-t border-orange-200 shadow-lg flex-shrink-0">
         <div className="max-w-2xl mx-auto p-2 sm:p-4">
           <div className="flex gap-2">
             <input
