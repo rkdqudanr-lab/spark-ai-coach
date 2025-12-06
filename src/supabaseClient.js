@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // ⚠️ 여기에 너의 Supabase 정보 입력!
-const SUPABASE_URL = 'https://jpwydqfkvhglwmlkesla.supabase.co'; // 예: https://xxxxx.supabase.co
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwd3lkcWZrdmhnbHdtbGtlc2xhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5MTY1NjAsImV4cCI6MjA4MDQ5MjU2MH0.Ry9iQveRW9OlQozQ9QCd7RvWK031VdcSRhZqtYllhWA'; // eyJhbGc... 로 시작
+const SUPABASE_URL = 'https://jpwydqfkvhglwmlkesla.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwd3lkcWZrdmhnbHdtbGtlc2xhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ5MTY1NjAsImV4cCI6MjA4MDQ5MjU2MH0.Ry9iQveRW9OlQozQ9QCd7RvWK031VdcSRhZqtYllhWA';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -129,6 +129,22 @@ export const conversationHelpers = {
       .eq('id', conversationId);
     
     if (error) throw error;
+  },
+
+  // 대화 제목 변경 (NEW!)
+  async updateConversationTitle(conversationId, newTitle) {
+    const { data, error } = await supabase
+      .from('conversations')
+      .update({ 
+        title: newTitle,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', conversationId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
   }
 };
 
@@ -173,6 +189,40 @@ export const challengeHelpers = {
         status: 'completed',
         completed_at: new Date().toISOString()
       })
+      .eq('id', challengeId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // 도전과제 상태 변경 (NEW!)
+  async updateChallengeStatus(challengeId, status) {
+    const updates = { status };
+    
+    if (status === 'active') {
+      updates.completed_at = null;
+    } else if (status === 'completed') {
+      updates.completed_at = new Date().toISOString();
+    }
+
+    const { data, error } = await supabase
+      .from('challenges')
+      .update(updates)
+      .eq('id', challengeId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // 도전과제 레벨 변경 (NEW!)
+  async updateChallengeLevel(challengeId, newLevel) {
+    const { data, error } = await supabase
+      .from('challenges')
+      .update({ level: newLevel })
       .eq('id', challengeId)
       .select()
       .single();
