@@ -1,6 +1,6 @@
-// src/App.js - 최종 개편 버전
+// src/App.js - 새로운 UX 버전
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles, CheckCircle, Circle, Trophy, LogOut, Menu, X, Eye, EyeOff, Target, Info, Plus, Trash2, ChevronDown, ChevronUp, MoreVertical, Edit2, Check, Clock, Link as LinkIcon, Folder, FolderPlus, ExternalLink } from 'lucide-react';
+import { Send, Sparkles, CheckCircle, Circle, Trophy, LogOut, Eye, EyeOff, Target, ChevronLeft, ArrowLeft } from 'lucide-react';
 import { 
   authHelpers, 
   conversationHelpers, 
@@ -8,7 +8,7 @@ import {
   supabase
 } from './supabaseClient';
 
-// 레벨 시스템 정의 (이모티콘 추가)
+// 레벨 시스템 정의
 const LEVEL_SYSTEM = {
   1: {
     emoji: "🐣",
@@ -52,316 +52,176 @@ const LEVEL_SYSTEM = {
   },
   4: {
     emoji: "🌳",
-    title: "중상급: 시장 검증",
-    description: "시장성을 검증하는 단계",
+    title: "중상급: 시장 이해",
+    description: "시장과 고객을 분석하는 단계",
     color: "from-blue-400 to-indigo-400",
     bgColor: "from-blue-50 to-indigo-50",
     requirements: [
       "시장조사 보고서 완성",
-      "타겟 고객 페르소나 3개 작성",
-      "MVP 기획서 작성",
-      "사업 타당성 분석"
+      "MVP 프로토타입 제작",
+      "고객 검증 테스트 10명",
+      "수익 모델 구체화"
     ],
     requiredChallenges: 12
   },
   5: {
     emoji: "🏗️",
-    title: "고급: 비즈니스 모델 설계",
-    description: "수익 모델을 만드는 단계",
+    title: "고급: 비즈니스 모델",
+    description: "사업 구조를 설계하는 단계",
     color: "from-purple-400 to-pink-400",
     bgColor: "from-purple-50 to-pink-50",
     requirements: [
       "비즈니스 모델 캔버스 완성",
-      "수익 구조 설계",
-      "예상 손익계산서 작성",
-      "투자 계획서 초안"
+      "재무 계획 수립",
+      "팀 빌딩 (공동창업자 또는 핵심 인력)",
+      "법인 설립 준비"
     ],
-    requiredChallenges: 16
+    requiredChallenges: 17
   },
   6: {
     emoji: "🏢",
-    title: "실전 준비: 자료 구축",
-    description: "실제 사업을 준비하는 단계",
+    title: "실전 준비: 사업계획서",
+    description: "예비창업패키지 신청 준비",
     color: "from-orange-400 to-red-400",
     bgColor: "from-orange-50 to-red-50",
     requirements: [
-      "사업계획서 1차 완성",
-      "재무 계획 수립",
-      "마케팅 전략 수립",
-      "팀 구성 계획"
+      "사업계획서 초안 작성",
+      "멘토링 피드백 3회 반영",
+      "발표 자료 PPT 완성",
+      "사업비 예산 상세 계획"
     ],
-    requiredChallenges: 20
+    requiredChallenges: 21
   },
   7: {
     emoji: "🤝",
-    title: "실전 돌입: 네트워킹",
-    description: "실전 경험을 쌓는 단계",
+    title: "실전 돌입: 신청 준비",
+    description: "최종 서류 준비 및 검토",
     color: "from-rose-400 to-pink-400",
     bgColor: "from-rose-50 to-pink-50",
     requirements: [
-      "창업 네트워킹 행사 3회 참석",
-      "예비 창업자 커뮤니티 가입",
-      "멘토 1명 확보",
-      "파트너/팀원 모집"
+      "사업계획서 최종본 완성",
+      "모의 면접 3회 이상",
+      "서류 검토 전문가 피드백",
+      "필요 서류 일체 준비"
     ],
-    requiredChallenges: 24
+    requiredChallenges: 25
   },
   8: {
     emoji: "🎯",
-    title: "도전: 공모전 참가",
-    description: "실전 테스트하는 단계",
+    title: "도전: 신청 완료",
+    description: "예비창업패키지 신청",
     color: "from-violet-400 to-purple-400",
     bgColor: "from-violet-50 to-purple-50",
     requirements: [
-      "창업 공모전 1개 제출",
-      "피칭 연습 10회 이상",
-      "피드백 반영한 사업계획서 2차 완성",
-      "IR 덱 완성"
+      "K-Startup 신청서 제출",
+      "추가 자료 준비",
+      "면접 연습 (최소 5회)",
+      "비상 연락망 구성"
     ],
     requiredChallenges: 28
   },
   9: {
     emoji: "📝",
-    title: "최종 준비: 예창패 서류",
-    description: "예비창업패키지 서류 완성 단계",
+    title: "최종 준비: 면접 대비",
+    description: "면접 완벽 대비",
     color: "from-indigo-400 to-blue-400",
     bgColor: "from-indigo-50 to-blue-50",
     requirements: [
-      "예비창업패키지 한글 파일 완성",
-      "예비창업패키지 PPT 완성",
-      "최종 검토 및 피드백 반영",
-      "제출 서류 체크리스트 완료"
+      "예상 질문 50개 답변 준비",
+      "1분 자기소개 완벽 암기",
+      "사업 핵심 수치 암기",
+      "모의 면접 10회"
     ],
     requiredChallenges: 32
   },
   10: {
     emoji: "🚀",
-    title: "최종 목표: 예창패 도전!",
-    description: "예비창업패키지 신청 단계",
+    title: "최종 목표: 합격!",
+    description: "예비창업패키지 합격 및 사업 시작",
     color: "from-yellow-400 via-orange-400 to-red-400",
     bgColor: "from-yellow-50 via-orange-50 to-red-50",
     requirements: [
-      "예비창업패키지 신청 완료",
-      "서류 심사 준비 완료",
-      "발표 심사 준비 완료",
-      "최종 점검 완료"
+      "면접 참석",
+      "합격 통보 수령",
+      "사업자 등록",
+      "사업 시작!"
     ],
     requiredChallenges: 35
   }
 };
 
+// 레벨 계산
+function calculateLevel(completedCount) {
+  if (completedCount >= 35) return 10;
+  if (completedCount >= 32) return 9;
+  if (completedCount >= 28) return 8;
+  if (completedCount >= 25) return 7;
+  if (completedCount >= 21) return 6;
+  if (completedCount >= 17) return 5;
+  if (completedCount >= 12) return 4;
+  if (completedCount >= 8) return 3;
+  if (completedCount >= 5) return 2;
+  if (completedCount >= 3) return 1;
+  return 1;
+}
+
+// 다음 레벨까지 필요한 도전과제 수
+function getChallengesUntilNextLevel(currentLevel, completedCount) {
+  if (currentLevel >= 10) return 0;
+  const nextLevel = currentLevel + 1;
+  return LEVEL_SYSTEM[nextLevel].requiredChallenges - completedCount;
+}
+
 function App() {
   // 인증 상태
   const [user, setUser] = useState(null);
   const [isLogin, setIsLogin] = useState(true);
-  
-  // 폼 상태
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
 
-  // 대화 상태
+  // 뷰 모드
+  const [viewMode, setViewMode] = useState('main'); // 'main' | 'chat'
+  const [activeChallengeId, setActiveChallengeId] = useState(null);
+
+  // 데이터
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [conversationToDelete, setConversationToDelete] = useState(null);
-  const [editingConvId, setEditingConvId] = useState(null);
-  const [editingConvTitle, setEditingConvTitle] = useState('');
-  
-  // 도전과제 상태
   const [challenges, setChallenges] = useState([]);
   const [userStats, setUserStats] = useState({ total: 0, completed: 0, active: 0, level: 1 });
-  const [selectedChallenge, setSelectedChallenge] = useState(null);
-  const [showChallengeDetail, setShowChallengeDetail] = useState(false);
-  const [showLevelRoadmap, setShowLevelRoadmap] = useState(false);
-  const [pendingChallengeText, setPendingChallengeText] = useState('');
-  
-  // UI 상태
-  const [showSidebar, setShowSidebar] = useState(false);
-  const [showStats, setShowStats] = useState(true);
-  const [showTimerSettings, setShowTimerSettings] = useState(false);
-  const [showLinkMenu, setShowLinkMenu] = useState(false);
-  const [challengeMenuId, setChallengeMenuId] = useState(null);
-  const [showCompletedChallenges, setShowCompletedChallenges] = useState(false);
-  
-  // 뽀모도로 타이머
-  const [timerMinutes, setTimerMinutes] = useState(25);
-  const [timerSeconds, setTimerSeconds] = useState(0);
-  const [timerActive, setTimerActive] = useState(false);
-  const [showTimerComplete, setShowTimerComplete] = useState(false);
-  
-  // 링크 관리
-  const [links, setLinks] = useState([]);
-  const [folders, setFolders] = useState([{ id: 'default', name: '기본' }]);
-  const [showLinkManager, setShowLinkManager] = useState(false);
-  const [newLinkName, setNewLinkName] = useState('');
-  const [newLinkUrl, setNewLinkUrl] = useState('');
-  const [newLinkFolder, setNewLinkFolder] = useState('default');
-  const [newFolderName, setNewFolderName] = useState('');
-  
+
   const messagesEndRef = useRef(null);
-  const timerInterval = useRef(null);
 
   // 초기 로드
   useEffect(() => {
     const currentUser = authHelpers.getCurrentUser();
-    
     if (currentUser) {
       setUser(currentUser);
       loadUserData(currentUser.id);
-      
-      // localStorage에서 링크/폴더 불러오기
-      const savedLinks = localStorage.getItem(`links_${currentUser.id}`);
-      const savedFolders = localStorage.getItem(`folders_${currentUser.id}`);
-      if (savedLinks) setLinks(JSON.parse(savedLinks));
-      if (savedFolders) setFolders(JSON.parse(savedFolders));
     }
   }, []);
-
-  // 타이머 효과
-  useEffect(() => {
-    if (timerActive) {
-      timerInterval.current = setInterval(() => {
-        setTimerSeconds(prev => {
-          if (prev === 0) {
-            if (timerMinutes === 0) {
-              setTimerActive(false);
-              setShowTimerComplete(true);
-              return 0;
-            }
-            setTimerMinutes(m => m - 1);
-            return 59;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      if (timerInterval.current) clearInterval(timerInterval.current);
-    }
-    return () => {
-      if (timerInterval.current) clearInterval(timerInterval.current);
-    };
-  }, [timerActive, timerMinutes]);
-
-  // 레벨 계산
-  const calculateLevel = (completedCount) => {
-    for (let level = 10; level >= 1; level--) {
-      if (completedCount >= LEVEL_SYSTEM[level].requiredChallenges) {
-        return level;
-      }
-    }
-    return 1;
-  };
-
-  // 다음 레벨까지 필요한 과제 수
-  const getChallengesUntilNextLevel = (currentLevel, completedCount) => {
-    if (currentLevel >= 10) return 0;
-    return LEVEL_SYSTEM[currentLevel + 1].requiredChallenges - completedCount;
-  };
 
   // 사용자 데이터 로드
   const loadUserData = async (userId) => {
     try {
-      const [convs, chals, stats] = await Promise.all([
+      const [convs, challs] = await Promise.all([
         conversationHelpers.getConversations(userId),
-        challengeHelpers.getChallenges(userId),
-        challengeHelpers.getUserStats(userId)
+        challengeHelpers.getChallenges(userId)
       ]);
       
       setConversations(convs);
-      setChallenges(chals);
+      setChallenges(challs);
       
+      const stats = await challengeHelpers.getUserStats(userId);
       const actualLevel = calculateLevel(stats.completed);
       setUserStats({ ...stats, level: actualLevel });
-      
-      if (convs.length > 0) {
-        await loadConversation(convs[0].id);
-      }
     } catch (error) {
       console.error('데이터 로드 실패:', error);
-    }
-  };
-
-  // 대화 로드
-  const loadConversation = async (conversationId) => {
-    try {
-      const msgs = await conversationHelpers.getMessages(conversationId);
-      setMessages(msgs.map(m => ({ role: m.role, content: m.content })));
-      setCurrentConversationId(conversationId);
-      setShowSidebar(false);
-    } catch (error) {
-      console.error('대화 로드 실패:', error);
-    }
-  };
-
-  // 대화 제목 변경
-  const handleRenameConversation = async (convId, newTitle) => {
-    try {
-      await conversationHelpers.updateConversationTitle(convId, newTitle);
-      setConversations(conversations.map(c => 
-        c.id === convId ? { ...c, title: newTitle } : c
-      ));
-      setEditingConvId(null);
-    } catch (error) {
-      console.error('제목 변경 실패:', error);
-    }
-  };
-
-  // 대화 삭제
-  const handleDeleteConversation = async () => {
-    if (!conversationToDelete) return;
-
-    try {
-      await conversationHelpers.deleteConversation(conversationToDelete);
-      
-      setConversations(conversations.filter(c => c.id !== conversationToDelete));
-      
-      if (currentConversationId === conversationToDelete) {
-        setCurrentConversationId(null);
-        setMessages([]);
-      }
-      
-      setConversationToDelete(null);
-    } catch (error) {
-      console.error('대화 삭제 실패:', error);
-      alert('대화 삭제에 실패했습니다');
-    }
-  };
-
-  // 회원가입
-  const handleSignUp = async (e) => {
-    e.preventDefault();
-    setAuthError('');
-    setAuthLoading(true);
-
-    if (!username || !password || !name) {
-      setAuthError('모든 항목을 입력해주세요');
-      setAuthLoading(false);
-      return;
-    }
-
-    if (password.length < 4) {
-      setAuthError('비밀번호는 4자 이상이어야 합니다');
-      setAuthLoading(false);
-      return;
-    }
-
-    const result = await authHelpers.signUp(username, password, name);
-    setAuthLoading(false);
-
-    if (result.success) {
-      const loginResult = await authHelpers.signIn(username, password);
-      if (loginResult.success) {
-        setUser(loginResult.user);
-        await loadUserData(loginResult.user.id);
-      }
-    } else {
-      setAuthError(result.error);
     }
   };
 
@@ -369,14 +229,27 @@ function App() {
   const handleSignIn = async (e) => {
     e.preventDefault();
     setAuthError('');
-    setAuthLoading(true);
-
     const result = await authHelpers.signIn(username, password);
-    setAuthLoading(false);
-
     if (result.success) {
       setUser(result.user);
-      await loadUserData(result.user.id);
+      loadUserData(result.user.id);
+    } else {
+      setAuthError(result.error);
+    }
+  };
+
+  // 회원가입
+  const handleSignUp = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    if (!name || !username || !password) {
+      setAuthError('모든 필드를 입력해주세요');
+      return;
+    }
+    const result = await authHelpers.signUp(username, password, name);
+    if (result.success) {
+      setUser(result.user);
+      loadUserData(result.user.id);
     } else {
       setAuthError(result.error);
     }
@@ -386,23 +259,76 @@ function App() {
   const handleLogout = () => {
     authHelpers.signOut();
     setUser(null);
-    setConversations([]);
+    setViewMode('main');
     setMessages([]);
     setChallenges([]);
-    setCurrentConversationId(null);
   };
 
-  // 새 대화 시작
-  const startNewConversation = async () => {
+  // 도전과제 클릭 → 채팅 모드
+  const handleChallengeClick = async (challenge) => {
+    const shouldStart = window.confirm(
+      `"${challenge.title}"\n\n이 도전과제에 대해 SPARK와 대화해볼까요?`
+    );
+    
+    if (!shouldStart) return;
+    
+    setActiveChallengeId(challenge.id);
+    setViewMode('chat');
+    
+    // 새 대화 시작
+    const conv = await conversationHelpers.createConversation(
+      user.id, 
+      `[도전과제] ${challenge.title}`
+    );
+    setCurrentConversationId(conv.id);
+    setConversations([conv, ...conversations]);
+    
+    // SPARK의 첫 메시지
+    const welcomeMessage = `좋아! "${challenge.title}" 같이 시작해보자! 💪\n\n어디까지 진행했어? 막히는 부분 있어?`;
+    
+    await conversationHelpers.addMessage(conv.id, 'assistant', welcomeMessage);
+    setMessages([{ role: 'assistant', content: welcomeMessage }]);
+  };
+
+  // 필수 과제 생성 + 시작
+  const handleRequiredChallengeStart = async (requirementText) => {
     try {
-      const conv = await conversationHelpers.createConversation(user.id);
-      setConversations([conv, ...conversations]);
-      setCurrentConversationId(conv.id);
-      setMessages([]);
-      setShowSidebar(false);
+      // 이미 존재하는지 확인
+      const existing = challenges.find(c => 
+        c.title === requirementText || c.description === requirementText
+      );
+      
+      if (existing) {
+        handleChallengeClick(existing);
+        return;
+      }
+      
+      // 새로 생성
+      const newChallenge = await challengeHelpers.createChallenge(
+        user.id,
+        null,
+        {
+          title: requirementText,
+          description: requirementText,
+          level: userStats.level
+        }
+      );
+      
+      setChallenges(prev => [newChallenge, ...prev]);
+      
+      // 바로 대화 시작
+      handleChallengeClick(newChallenge);
     } catch (error) {
-      console.error('새 대화 생성 실패:', error);
+      console.error('도전과제 생성 실패:', error);
     }
+  };
+
+  // 메인 화면으로 돌아가기
+  const handleBackToMain = () => {
+    setViewMode('main');
+    setActiveChallengeId(null);
+    setMessages([]);
+    loadUserData(user.id); // 데이터 새로고침
   };
 
   // 메시지 전송
@@ -414,15 +340,7 @@ function App() {
     setIsLoading(true);
 
     try {
-      let convId = currentConversationId;
-      if (!convId) {
-        const conv = await conversationHelpers.createConversation(user.id);
-        convId = conv.id;
-        setCurrentConversationId(convId);
-        setConversations([conv, ...conversations]);
-      }
-
-      await conversationHelpers.addMessage(convId, 'user', userMessage);
+      await conversationHelpers.addMessage(currentConversationId, 'user', userMessage);
       const newMessages = [...messages, { role: 'user', content: userMessage }];
       setMessages(newMessages);
 
@@ -442,89 +360,50 @@ function App() {
       }
 
       const data = await response.json();
-      let assistantMessage = data.message;
-      
-      // ** 제거 (볼드 마크다운)
-      assistantMessage = assistantMessage.replace(/\*\*/g, '');
+      let assistantMessage = data.message.replace(/\*\*/g, '');
 
-      await conversationHelpers.addMessage(convId, 'assistant', assistantMessage);
+      await conversationHelpers.addMessage(currentConversationId, 'assistant', assistantMessage);
       setMessages([...newMessages, { role: 'assistant', content: assistantMessage }]);
 
-      // 도전과제 감지 (개선된 패턴)
-      if (assistantMessage.includes('🎯') && (
-          assistantMessage.includes('도전과제') || 
-          assistantMessage.includes('미션')
+      // "다했어" 감지
+      if (activeChallengeId && (
+          userMessage.includes('다했어') || 
+          userMessage.includes('완료했어') ||
+          userMessage.includes('끝났어') ||
+          userMessage.includes('다 했어')
       )) {
-        console.log('✅ 도전과제 감지됨!');
-        setPendingChallengeText(assistantMessage);
+        const shouldComplete = window.confirm(
+          '🎉 축하해!\n\n이 도전과제를 달성 체크하시겠습니까?'
+        );
+        
+        if (shouldComplete) {
+          await challengeHelpers.completeChallenge(activeChallengeId);
+          setChallenges(prev => 
+            prev.map(c => c.id === activeChallengeId ? { ...c, status: 'completed' } : c)
+          );
+          
+          setTimeout(() => {
+            alert('✅ 도전과제 완료! 계속 화이팅! 💪');
+            handleBackToMain();
+          }, 500);
+        }
       }
 
     } catch (error) {
       console.error('메시지 전송 실패:', error);
-      alert('메시지 전송에 실패했습니다: ' + error.message);
+      alert('메시지 전송에 실패했습니다');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 대화에서 도전과제 추가
-  const handleAddChallengeFromChat = async () => {
-    if (!pendingChallengeText) return;
-
+  // 도전과제 토글
+  const handleToggleChallenge = async (challengeId) => {
     try {
-      // 제목 추출 (여러 패턴 시도)
-      let title = '새 도전과제';
+      const challenge = challenges.find(c => c.id === challengeId);
+      if (!challenge) return;
       
-      const titlePatterns = [
-        /미션:\s*(.+)/,
-        /도전과제\s*#\d+:\s*(.+)/,
-        /🎯\s*(.+?)(?:\n|$)/
-      ];
-      
-      for (const pattern of titlePatterns) {
-        const match = pendingChallengeText.match(pattern);
-        if (match && match[1]) {
-          title = match[1].trim();
-          break;
-        }
-      }
-      
-      console.log('➕ 대화에서 도전과제 추가:', title);
-      
-      const challenge = await challengeHelpers.createChallenge(
-        user.id,
-        currentConversationId,
-        {
-          title,
-          description: pendingChallengeText,
-          level: userStats.level
-        }
-      );
-
-      // 즉시 목록 상단에 추가
-      setChallenges(prevChallenges => [challenge, ...prevChallenges]);
-      
-      // 통계 갱신
-      const stats = await challengeHelpers.getUserStats(user.id);
-      const actualLevel = calculateLevel(stats.completed);
-      setUserStats({ ...stats, level: actualLevel });
-      
-      setPendingChallengeText('');
-      
-      console.log('✅ 도전과제 추가 완료:', challenge.id);
-    } catch (error) {
-      console.error('❌ 도전과제 저장 실패:', error);
-    }
-  };
-
-  // 도전과제 완료/취소 토글
-  const handleToggleChallenge = async (challengeId, currentStatus) => {
-    if (!challengeId) return;
-    
-    try {
-      const newStatus = currentStatus === 'completed' ? 'active' : 'completed';
-      
-      console.log(`🔄 도전과제 상태 변경: ${challengeId} -> ${newStatus}`);
+      const newStatus = challenge.status === 'completed' ? 'active' : 'completed';
       
       if (newStatus === 'completed') {
         await challengeHelpers.completeChallenge(challengeId);
@@ -532,117 +411,16 @@ function App() {
         await challengeHelpers.updateChallengeStatus(challengeId, 'active');
       }
       
-      // 즉시 상태 업데이트
-      setChallenges(prevChallenges => 
-        prevChallenges.map(c => 
-          c.id === challengeId ? { ...c, status: newStatus } : c
-        )
+      setChallenges(prev => 
+        prev.map(c => c.id === challengeId ? { ...c, status: newStatus } : c)
       );
       
-      // 통계 갱신
       const stats = await challengeHelpers.getUserStats(user.id);
       const actualLevel = calculateLevel(stats.completed);
       setUserStats({ ...stats, level: actualLevel });
-      
-      console.log(`✅ 도전과제 상태 변경 완료`);
     } catch (error) {
-      console.error('❌ 도전과제 상태 변경 실패:', error);
+      console.error('도전과제 토글 실패:', error);
     }
-  };
-
-  // 도전과제 레벨 변경
-  const handleMoveChallengeToLevel = async (challengeId, newLevel) => {
-    if (!challengeId) return;
-    
-    try {
-      console.log(`📦 도전과제 이동: ${challengeId} -> Level ${newLevel}`);
-      
-      await challengeHelpers.updateChallengeLevel(challengeId, newLevel);
-      
-      // 즉시 상태 업데이트
-      setChallenges(prevChallenges => 
-        prevChallenges.map(c => 
-          c.id === challengeId ? { ...c, level: newLevel } : c
-        )
-      );
-      
-      console.log(`✅ 도전과제 이동 완료`);
-    } catch (error) {
-      console.error('❌ 도전과제 레벨 변경 실패:', error);
-    }
-  };
-
-  // 필수 과제 생성 (매칭 안될 때)
-  const handleCreateRequiredChallenge = async (requirementText, autoComplete = false) => {
-    try {
-      console.log(`➕ 필수 과제 생성: ${requirementText}`);
-      
-      const newChallenge = await challengeHelpers.createChallenge(
-        user.id,
-        currentConversationId || null,
-        {
-          title: requirementText,
-          description: requirementText,
-          level: userStats.level,
-          status: autoComplete ? 'completed' : 'active'
-        }
-      );
-      
-      // 즉시 목록에 추가
-      setChallenges(prevChallenges => [newChallenge, ...prevChallenges]);
-      
-      // 통계 갱신
-      const stats = await challengeHelpers.getUserStats(user.id);
-      const actualLevel = calculateLevel(stats.completed);
-      setUserStats({ ...stats, level: actualLevel });
-      
-      console.log(`✅ 필수 과제 생성 완료:`, newChallenge.id, autoComplete ? '(완료됨)' : '(진행중)');
-      
-      return newChallenge;
-    } catch (error) {
-      console.error('❌ 필수 과제 생성 실패:', error);
-      return null;
-    }
-  };
-
-  // 링크 추가
-  const handleAddLink = () => {
-    if (!newLinkName || !newLinkUrl) return;
-    
-    const newLink = {
-      id: Date.now(),
-      name: newLinkName,
-      url: newLinkUrl,
-      folderId: newLinkFolder
-    };
-    
-    const updatedLinks = [...links, newLink];
-    setLinks(updatedLinks);
-    localStorage.setItem(`links_${user.id}`, JSON.stringify(updatedLinks));
-    
-    setNewLinkName('');
-    setNewLinkUrl('');
-  };
-
-  // 폴더 추가
-  const handleAddFolder = () => {
-    if (!newFolderName) return;
-    
-    const newFolder = {
-      id: Date.now().toString(),
-      name: newFolderName
-    };
-    
-    const updatedFolders = [...folders, newFolder];
-    setFolders(updatedFolders);
-    localStorage.setItem(`folders_${user.id}`, JSON.stringify(updatedFolders));
-    
-    setNewFolderName('');
-  };
-
-  // 타이머 시작/정지
-  const toggleTimer = () => {
-    setTimerActive(!timerActive);
   };
 
   // 진행상황 초기화
@@ -652,37 +430,27 @@ function App() {
     }
 
     try {
-      console.log('🔄 진행상황 초기화 시작...');
-      
-      // 모든 도전과제 삭제
       for (const challenge of challenges) {
-        await supabase
-          .from('challenges')
-          .delete()
-          .eq('id', challenge.id);
+        await supabase.from('challenges').delete().eq('id', challenge.id);
       }
       
       setChallenges([]);
       setUserStats({ total: 0, completed: 0, active: 0, level: 1 });
       
-      console.log('✅ 진행상황 초기화 완료');
       alert('✅ 진행상황이 초기화되었습니다.');
     } catch (error) {
-      console.error('❌ 초기화 실패:', error);
-      alert('초기화에 실패했습니다: ' + error.message);
+      console.error('초기화 실패:', error);
     }
   };
 
-  // 타이머 리셋
-  const resetTimer = () => {
-    setTimerActive(false);
-    setTimerMinutes(25);
-    setTimerSeconds(0);
-  };
-
-  // 새로고침
-  const handleRefresh = () => {
-    window.location.reload();
+  // 새 대화 시작
+  const handleNewChat = async () => {
+    const conv = await conversationHelpers.createConversation(user.id, '새 대화');
+    setCurrentConversationId(conv.id);
+    setConversations([conv, ...conversations]);
+    setMessages([]);
+    setViewMode('chat');
+    setActiveChallengeId(null);
   };
 
   // 스크롤
@@ -690,13 +458,13 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // 로그인/회원가입 화면
+  // 로그인 화면
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-400 via-rose-400 to-pink-500 flex items-center justify-center p-4 transition-all duration-500">
-        <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-8 w-full max-w-md border border-white/20 animate-fade-in-up">
+      <div className="min-h-screen bg-gradient-to-br from-orange-400 via-rose-400 to-pink-500 flex items-center justify-center p-4">
+        <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-8 w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-orange-500 via-rose-500 to-pink-500 rounded-2xl mb-4 shadow-lg animate-pulse-slow">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-orange-500 via-rose-500 to-pink-500 rounded-2xl mb-4 shadow-lg">
               <Sparkles className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 via-rose-600 to-pink-600 bg-clip-text text-transparent mb-2">
@@ -706,78 +474,68 @@ function App() {
           </div>
 
           {authError && (
-            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg mb-4 shadow-sm animate-shake">
+            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg mb-4">
               {authError}
             </div>
           )}
 
           <form onSubmit={isLogin ? handleSignIn : handleSignUp} className="space-y-4">
             {!isLogin && (
-              <div className="animate-slide-down">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  이름
-                </label>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">이름</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all bg-white/50"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   placeholder="홍길동"
                 />
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                아이디
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">아이디</label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all bg-white/50"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 placeholder="아이디"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                비밀번호
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">비밀번호</label>
               <div className="relative">
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all bg-white/50"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   placeholder="비밀번호"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-gray-700 transition-all"
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <EyeOff className="w-5 h-5 text-gray-500" /> : <Eye className="w-5 h-5 text-gray-500" />}
                 </button>
               </div>
             </div>
 
             <button
               type="submit"
-              disabled={authLoading}
-              className="w-full bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white py-3 rounded-xl font-bold text-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:transform-none"
+              className="w-full py-3 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white rounded-xl font-bold hover:shadow-xl transition-all"
             >
-              {authLoading ? '처리중...' : isLogin ? '시작하기 →' : '가입하기 →'}
+              {isLogin ? '로그인' : '회원가입'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <button
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setAuthError('');
-              }}
-              className="text-orange-600 hover:text-orange-700 text-sm font-semibold transition-colors"
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-orange-600 hover:text-orange-700 text-sm font-semibold"
             >
               {isLogin ? '새로 시작하기 →' : '이미 계정이 있어요 →'}
             </button>
@@ -791,640 +549,271 @@ function App() {
   const nextLevelChallenges = getChallengesUntilNextLevel(userStats.level, userStats.completed);
   const levelChallenges = challenges.filter(c => c.level === userStats.level);
 
-  // 메인 앱 화면
-  return (
-    <div className="flex h-screen bg-gradient-to-br from-orange-100 via-rose-100 to-pink-100">
-      {/* 사이드바 */}
-      <div className={`${showSidebar ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:static inset-y-0 left-0 w-80 bg-gradient-to-b from-white/95 to-white/90 backdrop-blur-xl border-r border-orange-200/50 transition-all duration-300 ease-out z-20 shadow-2xl`}>
-        <div className="flex flex-col h-full">
+  // ====== 메인 화면 ======
+  if (viewMode === 'main') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-100 via-rose-100 to-pink-100 p-4">
+        <div className="max-w-2xl mx-auto">
           {/* 헤더 */}
-          <div className="p-4 border-b border-orange-200/50">
-            <div className="flex items-center justify-between mb-4">
-              <button 
-                onClick={handleRefresh}
-                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-              >
-                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 via-rose-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+          <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl p-6 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 via-rose-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
                   <Sparkles className="w-6 h-6 text-white" />
                 </div>
-                <span className="font-bold text-xl bg-gradient-to-r from-orange-600 via-rose-600 to-pink-600 bg-clip-text text-transparent">SPARK</span>
-              </button>
+                <span className="font-bold text-2xl bg-gradient-to-r from-orange-600 via-rose-600 to-pink-600 bg-clip-text text-transparent">SPARK</span>
+              </div>
               <button
-                onClick={() => setShowSidebar(false)}
-                className="lg:hidden p-2 hover:bg-orange-50 rounded-lg transition-colors"
+                onClick={handleLogout}
+                className="p-2 hover:bg-orange-50 rounded-xl transition-all"
+                title="로그아웃"
               >
-                <X className="w-5 h-5" />
+                <LogOut className="w-5 h-5 text-orange-600" />
               </button>
             </div>
 
-            {/* 사용자 정보 */}
-            <div className="bg-gradient-to-br from-orange-100 via-rose-100 to-pink-100 rounded-2xl p-4 mb-3 border-2 border-orange-200/50 shadow-md">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-bold text-gray-900">{user.name}</p>
-                  <p className="text-sm text-gray-600">@{user.username}</p>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="p-2 hover:bg-white/80 rounded-xl transition-all duration-200"
-                  title="로그아웃"
-                >
-                  <LogOut className="w-5 h-5 text-orange-600" />
-                </button>
-              </div>
-            </div>
-
-            {/* 통계 (접기/펼치기) */}
-            <div className="bg-gradient-to-br from-white/80 to-white/60 rounded-2xl border-2 border-orange-200/50 shadow-md overflow-hidden">
-              <button
-                onClick={() => setShowStats(!showStats)}
-                className="w-full p-3 flex items-center justify-between hover:bg-white/80 transition-all duration-200"
-              >
-                <div className="flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-orange-600" />
-                  <span className="font-semibold text-gray-900">내 진행상황</span>
-                </div>
-                {showStats ? <ChevronUp className="w-5 h-5 text-gray-600" /> : <ChevronDown className="w-5 h-5 text-gray-600" />}
-              </button>
-              
-              <div className={`transition-all duration-300 ease-out ${showStats ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="p-4 pt-0 space-y-3">
-                  {/* 레벨 카드 */}
-                  <button
-                    onClick={() => setShowLevelRoadmap(true)}
-                    className={`w-full bg-gradient-to-r ${currentLevelInfo.bgColor} rounded-2xl p-4 border-2 border-opacity-30 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1`}
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="text-5xl">{currentLevelInfo.emoji}</div>
-                      <div className="flex-1 text-left">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className={`text-sm font-bold bg-gradient-to-r ${currentLevelInfo.color} bg-clip-text text-transparent`}>
-                            Level {userStats.level}
-                          </span>
-                          {userStats.level < 10 && (
-                            <span className="text-xs text-gray-600 font-medium">
-                              {nextLevelChallenges}개 남음
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs font-semibold text-gray-800">{currentLevelInfo.title}</p>
-                        <p className="text-xs text-gray-600">{currentLevelInfo.description}</p>
-                      </div>
-                    </div>
-                    
-                    {/* 프로그레스 바 */}
-                    {userStats.level < 10 && (
-                      <div className="w-full bg-white/50 rounded-full h-2 overflow-hidden">
-                        <div 
-                          className={`bg-gradient-to-r ${currentLevelInfo.color} h-2 rounded-full transition-all duration-500 ease-out`}
-                          style={{ 
-                            width: `${(userStats.completed / LEVEL_SYSTEM[userStats.level + 1].requiredChallenges) * 100}%` 
-                          }}
-                        />
-                      </div>
-                    )}
-                    
-                    <p className="text-xs text-center text-gray-500 mt-2">클릭하여 전체 로드맵 보기 →</p>
-                  </button>
-
-                  {/* 이번 레벨 도전과제 */}
-                  <div className="bg-gradient-to-r from-orange-50 to-rose-50 rounded-xl p-3 border-2 border-orange-200">
-                    <h4 className="text-sm font-bold text-orange-900 mb-3 flex items-center gap-2">
-                      <Target className="w-4 h-4" />
-                      이번 레벨 도전과제
-                    </h4>
-                    
-                    {/* 필수 과제 */}
-                    <div className="space-y-2 mb-3">
-                      {currentLevelInfo.requirements.map((req, idx) => {
-                        // 이 필수과제와 매칭되는 실제 도전과제 찾기
-                        const matchingChallenge = levelChallenges.find(c => {
-                          const reqLower = req.toLowerCase();
-                          const titleLower = c.title.toLowerCase();
-                          const descLower = c.description.toLowerCase();
-                          
-                          // 정확히 일치하는지 먼저 체크
-                          if (titleLower === reqLower || descLower === reqLower) {
-                            return true;
-                          }
-                          
-                          // 주요 키워드 포함 여부 (2글자 이상 단어)
-                          const reqWords = reqLower.split(' ').filter(w => w.length > 2);
-                          const matchCount = reqWords.filter(word => 
-                            titleLower.includes(word) || descLower.includes(word)
-                          ).length;
-                          
-                          // 키워드 절반 이상 매칭
-                          return reqWords.length > 0 && matchCount >= Math.ceil(reqWords.length / 2);
-                        });
-                        
-                        return (
-                          <div
-                            key={`req-${userStats.level}-${idx}`}
-                            className="flex items-start gap-2 p-2 rounded-lg hover:bg-orange-100 transition-all duration-200 group"
-                          >
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                
-                                if (matchingChallenge) {
-                                  // 매칭된 도전과제가 있으면 토글
-                                  await handleToggleChallenge(matchingChallenge.id, matchingChallenge.status);
-                                } else {
-                                  // 없으면 새로 생성 + 즉시 완료 처리
-                                  await handleCreateRequiredChallenge(req, true);
-                                }
-                              }}
-                              className="mt-0.5 flex-shrink-0"
-                            >
-                              {matchingChallenge?.status === 'completed' ? (
-                                <CheckCircle className="w-4 h-4 text-green-600" />
-                              ) : (
-                                <Circle className="w-4 h-4 text-orange-500" />
-                              )}
-                            </button>
-                            <span className="flex-1 text-xs text-gray-700">{req}</span>
-                            {matchingChallenge && (
-                              <div className="relative opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setChallengeMenuId(challengeMenuId === matchingChallenge.id ? null : matchingChallenge.id);
-                                  }}
-                                  className="p-1 hover:bg-orange-200 rounded"
-                                >
-                                  <MoreVertical className="w-3 h-3 text-gray-600" />
-                                </button>
-                                {challengeMenuId === matchingChallenge.id && (
-                                  <>
-                                    <div 
-                                      className="fixed inset-0 z-30"
-                                      onClick={() => setChallengeMenuId(null)}
-                                    />
-                                    <div className="absolute right-0 mt-1 bg-white border-2 border-orange-200 rounded-lg shadow-lg p-2 z-40 whitespace-nowrap">
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          const nextLevel = userStats.level + 1;
-                                          if (nextLevel <= 10) {
-                                            handleMoveChallengeToLevel(matchingChallenge.id, nextLevel);
-                                          }
-                                          setChallengeMenuId(null);
-                                        }}
-                                        className="w-full text-left px-3 py-2 text-xs hover:bg-orange-50 rounded transition-colors"
-                                      >
-                                        다음 레벨로 이동
-                                      </button>
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* 추가 도전과제 (대화에서 추가된 것들) */}
-                    {levelChallenges.filter(c => {
-                      // 필수 과제에 매칭되지 않는 것만
-                      return !currentLevelInfo.requirements.some(req => {
-                        const reqLower = req.toLowerCase();
-                        const titleLower = c.title.toLowerCase();
-                        const descLower = c.description.toLowerCase();
-                        
-                        if (titleLower === reqLower || descLower === reqLower) {
-                          return true;
-                        }
-                        
-                        const reqWords = reqLower.split(' ').filter(w => w.length > 2);
-                        const matchCount = reqWords.filter(word => 
-                          titleLower.includes(word) || descLower.includes(word)
-                        ).length;
-                        
-                        return reqWords.length > 0 && matchCount >= Math.ceil(reqWords.length / 2);
-                      });
-                    }).map(challenge => (
-                      <div
-                        key={`extra-${challenge.id}`}
-                        className="flex items-start gap-2 p-2 rounded-lg hover:bg-orange-100 transition-all duration-200 mb-2 group"
-                      >
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            await handleToggleChallenge(challenge.id, challenge.status);
-                          }}
-                          className="mt-0.5 flex-shrink-0"
-                        >
-                          {challenge.status === 'completed' ? (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <Circle className="w-4 h-4 text-orange-500" />
-                          )}
-                        </button>
-                        <span className="flex-1 text-xs text-gray-700">{challenge.title}</span>
-                        <div className="relative opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setChallengeMenuId(challengeMenuId === challenge.id ? null : challenge.id);
-                            }}
-                            className="p-1 hover:bg-orange-200 rounded"
-                          >
-                            <MoreVertical className="w-3 h-3 text-gray-600" />
-                          </button>
-                          {challengeMenuId === challenge.id && (
-                            <>
-                              <div 
-                                className="fixed inset-0 z-30"
-                                onClick={() => setChallengeMenuId(null)}
-                              />
-                              <div className="absolute right-0 mt-1 bg-white border-2 border-orange-200 rounded-lg shadow-lg p-2 z-40 whitespace-nowrap">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    const nextLevel = userStats.level + 1;
-                                    if (nextLevel <= 10) {
-                                      handleMoveChallengeToLevel(challenge.id, nextLevel);
-                                    }
-                                    setChallengeMenuId(null);
-                                  }}
-                                  className="w-full text-left px-3 py-2 text-xs hover:bg-orange-50 rounded transition-colors"
-                                >
-                                  다음 레벨로 이동
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* 통계 */}
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl p-2 border border-orange-300">
-                      <div className="text-xl font-bold text-orange-700">{userStats.total}</div>
-                      <div className="text-xs text-orange-700 font-medium">전체</div>
-                    </div>
-                    <button
-                      onClick={() => setShowCompletedChallenges(true)}
-                      className="bg-gradient-to-br from-green-100 to-green-200 rounded-xl p-2 border border-green-300 hover:shadow-lg transition-all"
-                    >
-                      <div className="text-xl font-bold text-green-700">{userStats.completed}</div>
-                      <div className="text-xs text-green-700 font-medium">완료</div>
-                    </button>
-                    <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl p-2 border border-blue-300">
-                      <div className="text-xl font-bold text-blue-700">{userStats.active}</div>
-                      <div className="text-xs text-blue-700 font-medium">진행중</div>
-                    </div>
-                  </div>
-
-                  {/* 초기화 버튼 */}
-                  <button
-                    onClick={handleResetProgress}
-                    className="w-full mt-2 px-3 py-2 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 rounded-lg text-xs font-medium transition-all border border-gray-300 hover:border-red-300"
-                  >
-                    🔄 진행상황 초기화
-                  </button>
-                </div>
-              </div>
+            <div className="mt-4 bg-gradient-to-br from-orange-100 via-rose-100 to-pink-100 rounded-2xl p-4">
+              <p className="font-bold text-gray-900">{user.name}</p>
+              <p className="text-sm text-gray-600">@{user.username}</p>
             </div>
           </div>
 
-          {/* 메뉴 */}
-          <div className="flex-1 overflow-y-auto p-4">
-            <button
-              onClick={startNewConversation}
-              className="w-full bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white py-3 rounded-xl font-bold text-base hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 mb-4"
-            >
-              + 새 대화
-            </button>
+          {/* 새 대화 버튼 */}
+          <button
+            onClick={handleNewChat}
+            className="w-full bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white rounded-2xl p-4 font-bold text-lg hover:shadow-xl transition-all mb-4"
+          >
+            💬 새 대화 시작
+          </button>
 
-            <h3 className="text-xs font-bold text-gray-500 uppercase mb-2 px-2">최근 대화</h3>
-            <div className="space-y-2">
-              {conversations.map(conv => (
-                <div
-                  key={conv.id}
-                  className={`w-full rounded-xl transition-all duration-200 group ${
-                    currentConversationId === conv.id
-                      ? 'bg-gradient-to-r from-orange-200 via-rose-200 to-pink-200 border-2 border-orange-400 shadow-lg'
-                      : 'bg-white/70 hover:bg-white border-2 border-gray-200'
-                  }`}
-                >
-                  <div className="flex items-center justify-between p-3">
-                    <button
-                      onClick={() => loadConversation(conv.id)}
-                      className="flex-1 text-left"
-                    >
-                      {editingConvId === conv.id ? (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={editingConvTitle}
-                            onChange={(e) => setEditingConvTitle(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleRenameConversation(conv.id, editingConvTitle)}
-                            className="flex-1 px-2 py-1 text-sm border rounded"
-                            autoFocus
-                          />
-                          <button
-                            onClick={() => handleRenameConversation(conv.id, editingConvTitle)}
-                            className="p-1 hover:bg-green-100 rounded"
-                          >
-                            <Check className="w-4 h-4 text-green-600" />
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="font-semibold text-sm text-gray-900 truncate">
-                            {conv.title}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {new Date(conv.updated_at).toLocaleDateString()}
-                          </p>
-                        </>
-                      )}
-                    </button>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <button
-                        onClick={() => {
-                          setEditingConvId(conv.id);
-                          setEditingConvTitle(conv.title);
-                        }}
-                        className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
-                        title="이름 변경"
-                      >
-                        <Edit2 className="w-4 h-4 text-blue-600" />
-                      </button>
-                      <button
-                        onClick={() => setConversationToDelete(conv.id)}
-                        className="p-2 hover:bg-red-100 rounded-lg transition-colors"
-                        title="대화 삭제"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+          {/* 내 진행상황 */}
+          <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl p-6 mb-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Trophy className="w-6 h-6 text-orange-600" />
+              <h2 className="text-xl font-bold text-gray-900">내 진행상황</h2>
             </div>
+
+            {/* 레벨 카드 */}
+            <div className={`bg-gradient-to-r ${currentLevelInfo.bgColor} rounded-2xl p-6 mb-6 border-2 border-orange-200 shadow-md`}>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="text-6xl">{currentLevelInfo.emoji}</div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-lg font-bold bg-gradient-to-r ${currentLevelInfo.color} bg-clip-text text-transparent`}>
+                      Level {userStats.level}
+                    </span>
+                    {userStats.level < 10 && (
+                      <span className="text-sm text-gray-600 font-medium">
+                        {nextLevelChallenges}개 남음
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm font-semibold text-gray-800 mb-1">{currentLevelInfo.title}</p>
+                  <p className="text-xs text-gray-600">{currentLevelInfo.description}</p>
+                </div>
+              </div>
+              
+              {userStats.level < 10 && (
+                <div className="w-full bg-white/50 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className={`bg-gradient-to-r ${currentLevelInfo.color} h-3 rounded-full transition-all duration-500`}
+                    style={{ 
+                      width: `${(userStats.completed / LEVEL_SYSTEM[userStats.level + 1].requiredChallenges) * 100}%` 
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* 이번 레벨 도전과제 */}
+            <div className="bg-gradient-to-r from-orange-50 to-rose-50 rounded-2xl p-4 border-2 border-orange-200 mb-4">
+              <h3 className="text-sm font-bold text-orange-900 mb-3 flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                이번 레벨 도전과제
+              </h3>
+              
+              <div className="space-y-2">
+                {currentLevelInfo.requirements.map((req, idx) => {
+                  const matchingChallenge = levelChallenges.find(c => {
+                    const reqLower = req.toLowerCase();
+                    const titleLower = c.title.toLowerCase();
+                    const descLower = c.description.toLowerCase();
+                    
+                    if (titleLower === reqLower || descLower === reqLower) return true;
+                    
+                    const reqWords = reqLower.split(' ').filter(w => w.length > 2);
+                    const matchCount = reqWords.filter(word => 
+                      titleLower.includes(word) || descLower.includes(word)
+                    ).length;
+                    
+                    return reqWords.length > 0 && matchCount >= Math.ceil(reqWords.length / 2);
+                  });
+                  
+                  return (
+                    <button
+                      key={`req-${userStats.level}-${idx}`}
+                      onClick={() => {
+                        if (matchingChallenge) {
+                          if (matchingChallenge.status === 'completed') {
+                            handleToggleChallenge(matchingChallenge.id);
+                          } else {
+                            handleChallengeClick(matchingChallenge);
+                          }
+                        } else {
+                          handleRequiredChallengeStart(req);
+                        }
+                      }}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-orange-100 transition-all text-left"
+                    >
+                      {matchingChallenge?.status === 'completed' ? (
+                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                      ) : (
+                        <Circle className="w-5 h-5 text-orange-500 flex-shrink-0" />
+                      )}
+                      <span className="text-sm text-gray-800">{req}</span>
+                    </button>
+                  );
+                })}
+
+                {/* 추가 도전과제 */}
+                {levelChallenges.filter(c => {
+                  return !currentLevelInfo.requirements.some(req => {
+                    const reqLower = req.toLowerCase();
+                    const titleLower = c.title.toLowerCase();
+                    const descLower = c.description.toLowerCase();
+                    
+                    if (titleLower === reqLower || descLower === reqLower) return true;
+                    
+                    const reqWords = reqLower.split(' ').filter(w => w.length > 2);
+                    const matchCount = reqWords.filter(word => 
+                      titleLower.includes(word) || descLower.includes(word)
+                    ).length;
+                    
+                    return reqWords.length > 0 && matchCount >= Math.ceil(reqWords.length / 2);
+                  });
+                }).map(challenge => (
+                  <button
+                    key={challenge.id}
+                    onClick={() => {
+                      if (challenge.status === 'completed') {
+                        handleToggleChallenge(challenge.id);
+                      } else {
+                        handleChallengeClick(challenge);
+                      }
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-orange-100 transition-all text-left"
+                  >
+                    {challenge.status === 'completed' ? (
+                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    ) : (
+                      <Circle className="w-5 h-5 text-orange-500 flex-shrink-0" />
+                    )}
+                    <span className="text-sm text-gray-800">{challenge.title}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 통계 */}
+            <div className="grid grid-cols-3 gap-3 mb-3">
+              <div className="bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl p-3 text-center border border-orange-300">
+                <div className="text-2xl font-bold text-orange-700">{userStats.total}</div>
+                <div className="text-xs text-orange-700 font-medium">전체</div>
+              </div>
+              <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-xl p-3 text-center border border-green-300">
+                <div className="text-2xl font-bold text-green-700">{userStats.completed}</div>
+                <div className="text-xs text-green-700 font-medium">완료</div>
+              </div>
+              <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl p-3 text-center border border-blue-300">
+                <div className="text-2xl font-bold text-blue-700">{userStats.active}</div>
+                <div className="text-xs text-blue-700 font-medium">진행중</div>
+              </div>
+            </div>
+
+            {/* 초기화 버튼 */}
+            <button
+              onClick={handleResetProgress}
+              className="w-full px-3 py-2 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 rounded-xl text-xs font-medium transition-all border border-gray-300 hover:border-red-300"
+            >
+              🔄 진행상황 초기화
+            </button>
+          </div>
+
+          {/* 최근 대화 */}
+          {conversations.length > 0 && (
+            <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">최근 대화</h2>
+              <div className="space-y-2">
+                {conversations.slice(0, 5).map(conv => (
+                  <button
+                    key={conv.id}
+                    onClick={async () => {
+                      setCurrentConversationId(conv.id);
+                      const msgs = await conversationHelpers.getMessages(conv.id);
+                      setMessages(msgs);
+                      setViewMode('chat');
+                      setActiveChallengeId(null);
+                    }}
+                    className="w-full text-left p-3 hover:bg-orange-50 rounded-xl transition-all"
+                  >
+                    <p className="text-sm font-medium text-gray-900 truncate">{conv.title}</p>
+                    <p className="text-xs text-gray-500">{new Date(conv.updated_at).toLocaleDateString('ko-KR')}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ====== 채팅 화면 ======
+  return (
+    <div className="flex flex-col h-screen bg-gradient-to-br from-orange-100 via-rose-100 to-pink-100">
+      {/* 헤더 */}
+      <div className="bg-white/90 backdrop-blur-xl border-b border-orange-200 shadow-lg">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-4">
+          <button
+            onClick={handleBackToMain}
+            className="p-2 hover:bg-orange-50 rounded-xl transition-all"
+          >
+            <ArrowLeft className="w-6 h-6 text-orange-600" />
+          </button>
+          <div className="flex items-center gap-2 flex-1">
+            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 via-rose-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-xl bg-gradient-to-r from-orange-600 via-rose-600 to-pink-600 bg-clip-text text-transparent">SPARK</span>
           </div>
         </div>
       </div>
 
-      {/* 메인 채팅 영역 */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* 헤더 */}
-        <div className="bg-gradient-to-r from-white/95 to-white/90 backdrop-blur-xl border-b border-orange-200/50 p-4 flex items-center justify-between shadow-lg">
-          <button
-            onClick={() => setShowSidebar(true)}
-            className="lg:hidden p-2 hover:bg-orange-50 rounded-lg transition-colors"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          
-          {/* 추가 기능 버튼 */}
-          <div className="ml-auto flex items-center gap-2">
-            {/* 집중 타이머 */}
-            <div className="relative">
-              <button
-                onClick={() => setShowTimerSettings(!showTimerSettings)}
-                className="p-2 hover:bg-orange-50 rounded-lg transition-all duration-200 flex items-center gap-2"
-                title="집중 타이머"
-              >
-                <Clock className="w-5 h-5 text-gray-600" />
-                <span className="hidden sm:inline text-sm font-medium text-gray-700">집중 타이머</span>
-              </button>
-              
-              {showTimerSettings && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowTimerSettings(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border-2 border-orange-200 p-4 z-50 animate-slide-down">
-                    <h4 className="text-sm font-bold text-gray-900 mb-3">집중 타이머</h4>
-                    <div className="bg-gradient-to-r from-orange-50 to-rose-50 rounded-lg p-3 border border-orange-200">
-                      <div className="text-3xl font-bold text-center mb-2 bg-gradient-to-r from-orange-600 to-rose-600 bg-clip-text text-transparent">
-                        {String(timerMinutes).padStart(2, '0')}:{String(timerSeconds).padStart(2, '0')}
-                      </div>
-                      <div className="flex gap-2 mb-3">
-                        <button
-                          onClick={toggleTimer}
-                          className="flex-1 bg-gradient-to-r from-orange-500 to-rose-500 text-white py-2 rounded-lg text-sm font-semibold hover:shadow-lg transition-all"
-                        >
-                          {timerActive ? '일시정지' : '시작'}
-                        </button>
-                        <button
-                          onClick={resetTimer}
-                          className="px-3 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-300 transition-all"
-                        >
-                          리셋
-                        </button>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-xs text-gray-600 font-medium">시간 설정</p>
-                        <div className="grid grid-cols-3 gap-2">
-                          {[15, 25, 45].map(mins => (
-                            <button
-                              key={mins}
-                              onClick={() => {
-                                setTimerMinutes(mins);
-                                setTimerSeconds(0);
-                                setTimerActive(false);
-                              }}
-                              className={`py-2 rounded-lg text-sm font-semibold transition-all ${
-                                timerMinutes === mins && timerSeconds === 0 && !timerActive
-                                  ? 'bg-orange-500 text-white'
-                                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                              }`}
-                            >
-                              {mins}분
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* 링크 관리 */}
-            <div className="relative">
-              <button
-                onClick={() => setShowLinkMenu(!showLinkMenu)}
-                className="p-2 hover:bg-orange-50 rounded-lg transition-all duration-200 flex items-center gap-2"
-                title="링크 관리"
-              >
-                <LinkIcon className="w-5 h-5 text-gray-600" />
-                <span className="hidden sm:inline text-sm font-medium text-gray-700">링크</span>
-              </button>
-              
-              {showLinkMenu && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowLinkMenu(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border-2 border-purple-200 p-4 z-50 animate-slide-down max-h-[80vh] overflow-y-auto">
-                    <h4 className="text-sm font-bold text-gray-900 mb-3">링크 관리</h4>
-                    
-                    {/* 새 링크 추가 */}
-                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-3 mb-3 border border-purple-200">
-                      <p className="text-xs font-semibold text-gray-700 mb-2">새 링크 추가</p>
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          placeholder="링크 이름"
-                          value={newLinkName}
-                          onChange={(e) => setNewLinkName(e.target.value)}
-                          className="w-full px-3 py-2 border rounded-lg text-sm"
-                        />
-                        <input
-                          type="url"
-                          placeholder="URL (https://...)"
-                          value={newLinkUrl}
-                          onChange={(e) => setNewLinkUrl(e.target.value)}
-                          className="w-full px-3 py-2 border rounded-lg text-sm"
-                        />
-                        <div className="flex gap-2">
-                          <select
-                            value={newLinkFolder}
-                            onChange={(e) => setNewLinkFolder(e.target.value)}
-                            className="flex-1 px-3 py-2 border rounded-lg text-sm"
-                          >
-                            {folders.map(folder => (
-                              <option key={folder.id} value={folder.id}>{folder.name}</option>
-                            ))}
-                          </select>
-                          <button
-                            onClick={handleAddLink}
-                            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all"
-                          >
-                            추가
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 새 폴더 추가 */}
-                    <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-3 mb-3 border border-blue-200">
-                      <p className="text-xs font-semibold text-gray-700 mb-2">새 폴더</p>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="폴더 이름"
-                          value={newFolderName}
-                          onChange={(e) => setNewFolderName(e.target.value)}
-                          className="flex-1 px-3 py-2 border rounded-lg text-sm"
-                        />
-                        <button
-                          onClick={handleAddFolder}
-                          className="px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg text-sm font-semibold hover:shadow-lg transition-all"
-                        >
-                          <FolderPlus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* 링크 목록 */}
-                    <div className="space-y-2">
-                      {folders.map(folder => {
-                        const folderLinks = links.filter(link => link.folderId === folder.id);
-                        if (folderLinks.length === 0) return null;
-                        
-                        return (
-                          <div key={folder.id} className="border border-gray-200 rounded-lg p-2">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Folder className="w-3 h-3 text-orange-600" />
-                              <h5 className="font-semibold text-xs text-gray-900">{folder.name}</h5>
-                            </div>
-                            <div className="space-y-1">
-                              {folderLinks.map(link => (
-                                <a
-                                  key={link.id}
-                                  href={link.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center justify-between p-2 hover:bg-gray-50 rounded transition-colors group"
-                                >
-                                  <span className="text-xs text-gray-700 group-hover:text-orange-600 truncate">{link.name}</span>
-                                  <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-orange-600 flex-shrink-0" />
-                                </a>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {links.length === 0 && (
-                        <p className="text-xs text-gray-500 text-center py-4">추가된 링크가 없습니다</p>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* 메시지 */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.length === 0 && (
-            <div className="text-center py-12 px-4 animate-fade-in">
-              <div className="w-20 h-20 bg-gradient-to-br from-orange-500 via-rose-500 to-pink-500 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-2xl animate-pulse-slow">
-                <Sparkles className="w-10 h-10 text-white" />
-              </div>
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-600 via-rose-600 to-pink-600 bg-clip-text text-transparent mb-3">
-                안녕, {user.name}! 👋
-              </h2>
-              <p className="text-gray-700 text-lg mb-2">
-                2025년 예비창업패키지,
-              </p>
-              <p className="text-gray-700 text-lg">
-                함께 준비해보자!
-              </p>
-            </div>
-          )}
-
+      {/* 메시지 영역 */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="max-w-4xl mx-auto space-y-4">
           {messages.map((msg, idx) => (
             <div
               key={idx}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className="max-w-[85%] sm:max-w-2xl">
+              <div className="max-w-[80%]">
                 <div
-                  className={`rounded-2xl px-4 py-3 shadow-lg transition-all duration-300 hover:shadow-xl ${
+                  className={`rounded-2xl px-4 py-3 shadow-lg ${
                     msg.role === 'user'
                       ? 'bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white'
-                      : 'bg-gradient-to-r from-white to-gray-50 border-2 border-gray-200 text-gray-900'
+                      : 'bg-white border-2 border-gray-200 text-gray-900'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap break-words text-sm sm:text-base">{msg.content}</p>
+                  <p className="whitespace-pre-wrap break-words text-sm">{msg.content}</p>
                 </div>
-                
-                {/* 도전과제 추가 버튼 */}
-                {msg.role === 'assistant' && (msg.content.includes('🎯') && (
-                  msg.content.includes('도전과제') || msg.content.includes('미션')
-                )) && (
-                  <button
-                    onClick={() => {
-                      setPendingChallengeText(msg.content);
-                      handleAddChallengeFromChat();
-                    }}
-                    className="mt-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm rounded-lg font-bold hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    도전과제에 추가
-                  </button>
-                )}
               </div>
             </div>
           ))}
 
           {isLoading && (
-            <div className="flex justify-start animate-slide-up">
-              <div className="bg-white border-2 border-gray-200 rounded-2xl px-4 py-3 shadow-md">
+            <div className="flex justify-start">
+              <div className="bg-white border-2 border-gray-200 rounded-2xl px-4 py-3">
                 <div className="flex gap-2">
                   <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce"></div>
                   <div className="w-2 h-2 bg-rose-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -1436,363 +825,31 @@ function App() {
 
           <div ref={messagesEndRef} />
         </div>
+      </div>
 
-        {/* 입력 */}
-        <div className="border-t border-orange-200/50 p-4 bg-gradient-to-r from-white/95 to-white/90 backdrop-blur-xl shadow-lg">
-          <div className="max-w-4xl mx-auto flex gap-2">
+      {/* 입력 영역 */}
+      <div className="bg-white/90 backdrop-blur-xl border-t border-orange-200 shadow-lg">
+        <div className="max-w-4xl mx-auto p-4">
+          <div className="flex gap-2">
             <input
               type="text"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
               placeholder="메시지를 입력하세요..."
-              className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 bg-white/80"
+              className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               disabled={isLoading}
             />
             <button
               onClick={sendMessage}
               disabled={isLoading || !inputMessage.trim()}
-              className="px-6 py-3 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white rounded-xl hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:transform-none"
+              className="px-6 py-3 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white rounded-xl hover:shadow-xl transition-all disabled:opacity-50"
             >
               <Send className="w-5 h-5" />
             </button>
           </div>
         </div>
       </div>
-
-      {/* 모달들 */}
-      
-      {/* 대화 삭제 확인 */}
-      {conversationToDelete && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border-2 border-red-200 animate-scale-in">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-rose-500 rounded-xl flex items-center justify-center">
-                <Trash2 className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900">대화 삭제</h3>
-            </div>
-            <p className="text-gray-700 mb-6 leading-relaxed">
-              대화는 <span className="font-bold text-red-600">삭제 후 복구가 불가능</span>합니다.<br />
-              정말 삭제하시겠습니까?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConversationToDelete(null)}
-                className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all duration-200"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleDeleteConversation}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all duration-300"
-              >
-                삭제
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 완료된 도전과제 */}
-      {showCompletedChallenges && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
-          onClick={() => setShowCompletedChallenges(false)}
-        >
-          <div 
-            className="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border-2 border-green-200 animate-scale-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-6 sticky top-0 bg-white pb-4 border-b">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900">완료된 도전과제</h3>
-              </div>
-              <button
-                onClick={() => setShowCompletedChallenges(false)}
-                className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {challenges.filter(c => c.status === 'completed').length === 0 ? (
-                <p className="text-center text-gray-500 py-8">아직 완료한 도전과제가 없습니다</p>
-              ) : (
-                challenges
-                  .filter(c => c.status === 'completed')
-                  .map(challenge => (
-                    <div
-                      key={challenge.id}
-                      className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border-2 border-green-200 hover:shadow-lg transition-all group"
-                    >
-                      <div className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <h4 className="font-bold text-gray-900 mb-1">{challenge.title}</h4>
-                          <p className="text-xs text-gray-600 mb-2">
-                            Level {challenge.level} • {new Date(challenge.completed_at).toLocaleDateString('ko-KR')}
-                          </p>
-                          {challenge.description !== challenge.title && (
-                            <p className="text-sm text-gray-700 line-clamp-2">{challenge.description}</p>
-                          )}
-                        </div>
-                        <button
-                          onClick={async () => {
-                            await handleToggleChallenge(challenge.id, 'completed');
-                          }}
-                          className="opacity-0 group-hover:opacity-100 px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-semibold transition-all"
-                        >
-                          되돌리기
-                        </button>
-                      </div>
-                    </div>
-                  ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 레벨 로드맵 */}
-      {showLevelRoadmap && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
-          onClick={() => setShowLevelRoadmap(false)}
-        >
-          <div 
-            className="bg-white rounded-3xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border-2 border-purple-200 animate-scale-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-6 sticky top-0 bg-white pb-4 border-b">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-                  <Trophy className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900">레벨 로드맵</h3>
-              </div>
-              <button
-                onClick={() => setShowLevelRoadmap(false)}
-                className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {Object.keys(LEVEL_SYSTEM).map(level => {
-                const levelNum = parseInt(level);
-                const levelInfo = LEVEL_SYSTEM[levelNum];
-                const isCurrentLevel = levelNum === userStats.level;
-                const isCompleted = levelNum < userStats.level;
-                
-                return (
-                  <div
-                    key={level}
-                    className={`rounded-2xl p-4 border-2 transition-all duration-300 ${
-                      isCurrentLevel
-                        ? `bg-gradient-to-r ${levelInfo.bgColor} border-opacity-50 shadow-lg scale-105`
-                        : isCompleted
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-gray-50 border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4 mb-3">
-                      <div className="text-5xl">{levelInfo.emoji}</div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-sm font-bold bg-gradient-to-r ${levelInfo.color} bg-clip-text text-transparent`}>
-                            Level {levelNum}
-                          </span>
-                          {isCurrentLevel && (
-                            <span className="px-2 py-0.5 bg-orange-500 text-white text-xs rounded-full font-bold">
-                              현재
-                            </span>
-                          )}
-                          {isCompleted && (
-                            <CheckCircle className="w-5 h-5 text-green-600" />
-                          )}
-                        </div>
-                        <p className="font-bold text-gray-900 mb-1">{levelInfo.title}</p>
-                        <p className="text-sm text-gray-600">{levelInfo.description}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500">필요 과제</p>
-                        <p className="text-2xl font-bold text-gray-900">{levelInfo.requiredChallenges}개</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      {levelInfo.requirements.map((req, idx) => (
-                        <div key={idx} className="flex items-start gap-2 text-sm text-gray-700">
-                          <span className={`mt-1 ${isCompleted ? 'text-green-600' : 'text-orange-600'}`}>•</span>
-                          <span>{req}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 타이머 완료 */}
-      {showTimerComplete && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
-          onClick={() => {
-            setShowTimerComplete(false);
-            resetTimer();
-          }}
-        >
-          <div 
-            className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border-2 border-green-200 animate-scale-in text-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <CheckCircle className="w-10 h-10 text-white" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">수고했어요! 🎉</h3>
-            <p className="text-gray-700 mb-6">
-              오늘의 창업 몰입 시간이 종료되었습니다.<br />
-              <span className="font-bold text-green-600">대단해요!</span>
-            </p>
-            <button
-              onClick={() => {
-                setShowTimerComplete(false);
-                resetTimer();
-              }}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white py-3 rounded-xl font-bold hover:shadow-lg transition-all duration-300"
-            >
-              확인
-            </button>
-          </div>
-        </div>
-      )}
-
-      <style jsx>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes fade-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slide-up {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slide-down {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes scale-in {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          75% { transform: translateX(5px); }
-        }
-
-        @keyframes pulse-slow {
-          0%, 100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.05);
-          }
-        }
-
-        .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
-        }
-
-        .animate-fade-in-up {
-          animation: fade-in-up 0.5s ease-out;
-        }
-
-        .animate-slide-up {
-          animation: slide-up 0.3s ease-out;
-        }
-
-        .animate-slide-down {
-          animation: slide-down 0.2s ease-out;
-        }
-
-        .animate-scale-in {
-          animation: scale-in 0.2s ease-out;
-        }
-
-        .animate-shake {
-          animation: shake 0.3s ease-out;
-        }
-
-        .animate-pulse-slow {
-          animation: pulse-slow 3s ease-in-out infinite;
-        }
-
-        /* 스크롤바 스타일링 */
-        ::-webkit-scrollbar {
-          width: 8px;
-          height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-          background: linear-gradient(to bottom, #f97316, #ec4899);
-          border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(to bottom, #ea580c, #db2777);
-        }
-      `}</style>
     </div>
   );
 }
