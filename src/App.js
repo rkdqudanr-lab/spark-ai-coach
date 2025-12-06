@@ -1,6 +1,6 @@
 // src/App.js - 새로운 UX 버전
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles, CheckCircle, Circle, Trophy, LogOut, Eye, EyeOff, Target, ChevronLeft, ArrowLeft } from 'lucide-react';
+import { Send, Sparkles, CheckCircle, Circle, Trophy, LogOut, Eye, EyeOff, Target, ChevronLeft, ArrowLeft, X } from 'lucide-react';
 import { 
   authHelpers, 
   conversationHelpers, 
@@ -188,6 +188,7 @@ function App() {
   const [hideCompletedChallenges, setHideCompletedChallenges] = useState(false);
   const [showStartDialog, setShowStartDialog] = useState(false);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
+  const [showLevelRoadmap, setShowLevelRoadmap] = useState(false);
 
   // 데이터
   const [conversations, setConversations] = useState([]);
@@ -199,6 +200,7 @@ function App() {
   const [userStats, setUserStats] = useState({ total: 0, completed: 0, active: 0, level: 1 });
 
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   // 초기 로드
   useEffect(() => {
@@ -402,6 +404,10 @@ function App() {
       alert('메시지 전송에 실패했습니다');
     } finally {
       setIsLoading(false);
+      // 입력창에 포커스 유지
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
   };
 
@@ -602,7 +608,10 @@ function App() {
             </div>
 
             {/* 레벨 카드 */}
-            <div className={`bg-gradient-to-r ${currentLevelInfo.bgColor} rounded-2xl p-6 mb-6 border-2 border-orange-200 shadow-md`}>
+            <button
+              onClick={() => setShowLevelRoadmap(true)}
+              className={`w-full bg-gradient-to-r ${currentLevelInfo.bgColor} rounded-2xl p-6 mb-6 border-2 border-orange-200 shadow-md hover:shadow-lg transition-all`}
+            >
               <div className="flex items-center gap-4 mb-4">
                 <div className="text-6xl">{currentLevelInfo.emoji}</div>
                 <div className="flex-1">
@@ -631,7 +640,9 @@ function App() {
                   />
                 </div>
               )}
-            </div>
+              
+              <p className="text-xs text-center text-orange-600 font-medium mt-3">클릭하여 전체 로드맵 보기 →</p>
+            </button>
 
             {/* 이번 레벨 도전과제 */}
             <div className="bg-gradient-to-r from-orange-50 to-rose-50 rounded-2xl p-4 border-2 border-orange-200 mb-4">
@@ -754,29 +765,6 @@ function App() {
 
                 {!hideCompletedChallenges && (
                   <>
-                    {/* 구분선 (완료 과제가 있을 때만) */}
-                    {(currentLevelInfo.requirements.some((req, idx) => {
-                      const matchingChallenge = levelChallenges.find(c => {
-                        const reqLower = req.toLowerCase();
-                        const titleLower = c.title.toLowerCase();
-                        const descLower = c.description.toLowerCase();
-                        
-                        if (titleLower === reqLower || descLower === reqLower) return true;
-                        
-                        const reqWords = reqLower.split(' ').filter(w => w.length > 2);
-                        const matchCount = reqWords.filter(word => 
-                          titleLower.includes(word) || descLower.includes(word)
-                        ).length;
-                        
-                        return reqWords.length > 0 && matchCount >= Math.ceil(reqWords.length / 2);
-                      });
-                      return matchingChallenge?.status === 'completed';
-                    }) || levelChallenges.some(c => c.status === 'completed')) && (
-                      <div className="border-t border-orange-300 my-3 pt-3">
-                        <p className="text-xs text-orange-600 font-medium mb-2">완료된 과제</p>
-                      </div>
-                    )}
-
                     {/* 완료된 필수 과제들 (아래) */}
                     {currentLevelInfo.requirements.map((req, idx) => {
                       const matchingChallenge = levelChallenges.find(c => {
@@ -943,6 +931,82 @@ function App() {
             </div>
           </div>
         )}
+
+        {/* 레벨 로드맵 */}
+        {showLevelRoadmap && (
+          <div 
+            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowLevelRoadmap(false)}
+          >
+            <div 
+              className="bg-white rounded-3xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6 sticky top-0 bg-white pb-4 border-b">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 via-rose-500 to-pink-500 rounded-xl flex items-center justify-center">
+                    <Trophy className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900">레벨 로드맵</h3>
+                </div>
+                <button
+                  onClick={() => setShowLevelRoadmap(false)}
+                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {Object.entries(LEVEL_SYSTEM).map(([level, info]) => {
+                  const levelNum = parseInt(level);
+                  const isCurrentLevel = levelNum === userStats.level;
+                  const isCompleted = userStats.completed >= info.requiredChallenges;
+                  
+                  return (
+                    <div
+                      key={level}
+                      className={`rounded-2xl p-6 border-2 transition-all ${
+                        isCurrentLevel 
+                          ? `bg-gradient-to-r ${info.bgColor} border-orange-400 shadow-lg scale-105` 
+                          : isCompleted
+                          ? 'bg-green-50 border-green-300'
+                          : 'bg-gray-50 border-gray-200'
+                      }`}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="text-5xl">{info.emoji}</div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className={`text-lg font-bold bg-gradient-to-r ${info.color} bg-clip-text text-transparent`}>
+                              Level {level}
+                            </span>
+                            {isCompleted && <CheckCircle className="w-5 h-5 text-green-600" />}
+                            {isCurrentLevel && !isCompleted && <span className="text-xs bg-orange-500 text-white px-2 py-1 rounded-full font-bold">현재</span>}
+                          </div>
+                          <p className="text-sm font-semibold text-gray-800 mb-2">{info.title}</p>
+                          <p className="text-xs text-gray-600 mb-3">{info.description}</p>
+                          
+                          <div className="bg-white/80 rounded-xl p-3">
+                            <p className="text-xs font-bold text-gray-700 mb-2">필요 도전과제: {info.requiredChallenges}개</p>
+                            <ul className="space-y-1">
+                              {info.requirements.map((req, idx) => (
+                                <li key={idx} className="text-xs text-gray-600 flex items-start gap-2">
+                                  <Circle className="w-3 h-3 mt-0.5 flex-shrink-0 text-orange-500" />
+                                  <span>{req}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -952,7 +1016,7 @@ function App() {
     <div className="flex flex-col h-screen bg-gradient-to-br from-orange-100 via-rose-100 to-pink-100">
       {/* 헤더 */}
       <div className="bg-white/90 backdrop-blur-xl border-b border-orange-200 shadow-lg">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-4">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-4">
           <button
             onClick={handleBackToMain}
             className="p-2 hover:bg-orange-50 rounded-xl transition-all"
@@ -970,7 +1034,16 @@ function App() {
 
       {/* 메시지 영역 */}
       <div className="flex-1 overflow-y-auto p-4">
-        <div className="max-w-4xl mx-auto space-y-4">
+        <div className="max-w-2xl mx-auto space-y-4 pb-4">
+          {messages.length === 0 && (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 via-rose-500 to-pink-500 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg">
+                <Sparkles className="w-8 h-8 text-white" />
+              </div>
+              <p className="text-gray-600">대화를 시작해보세요!</p>
+            </div>
+          )}
+
           {messages.map((msg, idx) => (
             <div
               key={idx}
@@ -1008,16 +1081,18 @@ function App() {
 
       {/* 입력 영역 */}
       <div className="bg-white/90 backdrop-blur-xl border-t border-orange-200 shadow-lg">
-        <div className="max-w-4xl mx-auto p-4">
+        <div className="max-w-2xl mx-auto p-4">
           <div className="flex gap-2">
             <input
+              ref={inputRef}
               type="text"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
               placeholder="메시지를 입력하세요..."
               className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               disabled={isLoading}
+              autoFocus
             />
             <button
               onClick={sendMessage}
