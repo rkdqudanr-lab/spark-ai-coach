@@ -134,31 +134,39 @@ function App() {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [challenges, setChallenges] = useState([]);
   const [userStats, setUserStats] = useState({ total: 0, completed: 0, active: 0, level: 1 });
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const mainScrollRef = useRef(null);
 
   // 초기 로드
   useEffect(() => {
-    const currentUser = authHelpers.getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-      loadUserData(currentUser.id);
-    }
+    const initApp = async () => {
+      try {
+        const currentUser = authHelpers.getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+          await loadUserData(currentUser.id);
+        }
+      } catch (error) {
+        console.error('초기 로드 실패:', error);
+        // 잘못된 데이터 삭제
+        localStorage.removeItem('spark_user');
+        setUser(null);
+      } finally {
+        setIsInitialLoading(false);
+      }
+    };
+    
+    initApp();
   }, []);
 
   // 자동 스크롤
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // 맨 위로 스크롤
-  const scrollToTop = () => {
-    mainScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   const loadUserData = async (userId) => {
     try {
@@ -174,6 +182,9 @@ function App() {
       setUserStats({ ...stats, level: calculateLevel(stats.completed) });
     } catch (error) {
       console.error('데이터 로드 실패:', error);
+      // 로드 실패 시 로그아웃
+      alert('데이터를 불러오는데 실패했습니다. 다시 로그인해주세요.');
+      handleLogout();
     }
   };
 
@@ -359,6 +370,20 @@ function App() {
     setViewMode('chat');
     setActiveChallengeId(null);
   };
+
+  // 로그인 화면
+  if (isInitialLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-400 via-rose-400 to-pink-500 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl mb-4 shadow-lg animate-bounce">
+            <Sparkles className="w-10 h-10 text-orange-500" />
+          </div>
+          <p className="text-white font-bold text-xl">SPARK 로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   // 로그인 화면
   if (!user) {
