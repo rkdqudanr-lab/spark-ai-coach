@@ -1,4 +1,4 @@
-// src/supabaseClient.js - Supabase Auth 버전
+// src/supabaseClient.js - Supabase Auth 버전 (이메일 수정)
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -16,7 +16,7 @@ export const authHelpers = {
     try {
       // 1. Supabase Auth로 회원가입
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: `${username}@spark.local`, // 가짜 이메일 (username을 이메일처럼)
+        email: `${username}@sparkapp.com`, // ✅ 수정: .local → .com
         password: password,
         options: {
           data: {
@@ -68,7 +68,7 @@ export const authHelpers = {
     try {
       // 1. Supabase Auth로 로그인
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: `${username}@spark.local`,
+        email: `${username}@sparkapp.com`, // ✅ 수정: .local → .com
         password: password
       });
 
