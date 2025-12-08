@@ -1,11 +1,11 @@
 // src/App.js - 완전 최적화 버전
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles, CheckCircle, Circle, Trophy, LogOut, Target, ArrowLeft, X } from 'lucide-react';
+import { Send, Sparkles, CheckCircle, Circle, Trophy, LogOut, Target, ArrowLeft, X, Plus, Trash2 } from 'lucide-react';
 import { 
   authHelpers, 
   conversationHelpers, 
   challengeHelpers,
-  profileHelpers,  // ✅ 추가!
+  profileHelpers,
   supabase
 } from './supabaseClient';
 
@@ -81,7 +81,7 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// 레벨 시스템
+// 레벨 시스템 (LEVEL_SYSTEM은 그대로 유지)
 const LEVEL_SYSTEM = {
   1: { emoji: "🐣", title: "입문: 창업 세계 탐험", description: "창업이 뭔지 알아가는 단계", color: "from-yellow-400 to-orange-400", bgColor: "from-yellow-50 to-orange-50", requirements: ["창업 관련 영상/기사 5개 읽기", "창업 아이템 브레인스토밍 (10개 이상)", "나만의 강점 3가지 정리"], requiredChallenges: 3 },
   2: { emoji: "🌱", title: "초급: 지식 쌓기", description: "창업 기본기를 다지는 단계", color: "from-green-400 to-emerald-400", bgColor: "from-green-50 to-emerald-50", requirements: ["주 3회 블로그 포스팅 (창업 관련)", "창업 관련 책 1권 읽기", "온라인 창업 강의 1개 수강"], requiredChallenges: 5 },
@@ -123,7 +123,7 @@ function App() {
   const [name, setName] = useState('');
   const [authError, setAuthError] = useState('');
   const [userProfile, setUserProfile] = useState({});
-  const [suggestedChallenge, setSuggestedChallenge] = useState(null);  // ✅ 추가!
+  const [suggestedChallenge, setSuggestedChallenge] = useState(null);
 
   // 뷰
   const [viewMode, setViewMode] = useState('main');
@@ -132,6 +132,14 @@ function App() {
   const [showStartDialog, setShowStartDialog] = useState(false);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
   const [showLevelRoadmap, setShowLevelRoadmap] = useState(false);
+  
+  // ✅ 새로 추가된 state
+  const [showAddChallengeDialog, setShowAddChallengeDialog] = useState(false);
+  const [newChallengeTitle, setNewChallengeTitle] = useState('');
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmDialogData, setConfirmDialogData] = useState({ title: '', message: '', onConfirm: null });
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [challengeToDelete, setChallengeToDelete] = useState(null);
 
   // 데이터
   const [conversations, setConversations] = useState([]);
@@ -147,24 +155,24 @@ function App() {
   const inputRef = useRef(null);
 
   // 초기 로드
-useEffect(() => {
-  const initApp = async () => {
-    try {
-      const currentUser = await authHelpers.getCurrentUser();  // await 추가!
-      if (currentUser) {
-        setUser(currentUser);
-        await loadUserData(currentUser.id);
+  useEffect(() => {
+    const initApp = async () => {
+      try {
+        const currentUser = await authHelpers.getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+          await loadUserData(currentUser.id);
+        }
+      } catch (error) {
+        console.error('초기 로드 실패:', error);
+        setUser(null);
+      } finally {
+        setIsInitialLoading(false);
       }
-    } catch (error) {
-      console.error('초기 로드 실패:', error);
-      setUser(null);  // localStorage 제거!
-    } finally {
-      setIsInitialLoading(false);
-    }
-  };
-  
-  initApp();
-}, []);
+    };
+    
+    initApp();
+  }, []);
 
   // 자동 스크롤
   useEffect(() => {
@@ -173,24 +181,32 @@ useEffect(() => {
 
   const loadUserData = async (userId) => {
     try {
-    const [convs, challs, profile] = await Promise.all([  // ✅ profile 추가!
-      conversationHelpers.getConversations(userId),
-      challengeHelpers.getChallenges(userId),
-      profileHelpers.getProfile(userId)  // ✅ 추가!
-    ]);
-    
-    setConversations(convs);
-    setChallenges(challs);
-    setUserProfile(profile.profile_data || {});  // ✅ 추가!
-    
-    const stats = await challengeHelpers.getUserStats(userId);
-    setUserStats({ ...stats, level: calculateLevel(stats.completed) });
-  } catch (error) {
-    console.error('데이터 로드 실패:', error);
-    alert('데이터를 불러오는데 실패했습니다. 다시 로그인해주세요.');
-    handleLogout();
-  }
-};
+      const [convs, challs, profile] = await Promise.all([
+        conversationHelpers.getConversations(userId),
+        challengeHelpers.getChallenges(userId),
+        profileHelpers.getProfile(userId)
+      ]);
+      
+      setConversations(convs);
+      setChallenges(challs);
+      setUserProfile(profile.profile_data || {});
+      
+      const stats = await challengeHelpers.getUserStats(userId);
+      setUserStats({ ...stats, level: calculateLevel(stats.completed) });
+    } catch (error) {
+      console.error('데이터 로드 실패:', error);
+      showConfirm('오류', '데이터를 불러오는데 실패했습니다. 다시 로그인해주세요.', () => handleLogout());
+    }
+  };
+
+  // ✅ 커스텀 확인 다이얼로그
+  const showConfirm = (title, message, onConfirm) => {
+    setConfirmDialogData({ title, message, onConfirm });
+    setShowConfirmDialog(true);
+  };
+
+// src/App.js - Part 2 (핵심 함수들)
+// Part 1 다음에 이어서 붙여넣으세요
 
   const handleSignIn = async (e) => {
     e.preventDefault();
@@ -220,13 +236,13 @@ useEffect(() => {
     }
   };
 
-const handleLogout = async () => {  // async 추가!
-  await authHelpers.signOut();  // await 추가!
-  setUser(null);
-  setViewMode('main');
-  setMessages([]);
-  setChallenges([]);
-};
+  const handleLogout = async () => {
+    await authHelpers.signOut();
+    setUser(null);
+    setViewMode('main');
+    setMessages([]);
+    setChallenges([]);
+  };
 
   const handleChallengeTextClick = (challenge) => {
     setSelectedChallenge(challenge);
@@ -249,27 +265,48 @@ const handleLogout = async () => {  // async 추가!
     setMessages([{ role: 'assistant', content: welcomeMessage }]);
   };
 
-  const handleRequiredChallengeStart = async (requirementText) => {
-    try {
-      const existing = challenges.find(c => c.title === requirementText || c.description === requirementText);
-      
-      if (existing) {
-        setSelectedChallenge(existing);
-        setShowStartDialog(true);
-        return;
+  // ✅ 추천 과제 추가 (확인 다이얼로그)
+  const handleAddRecommendedChallenge = (requirementText) => {
+    showConfirm(
+      '도전과제 추가',
+      `"${requirementText}"\n\n내 도전과제에 추가하시겠습니까?`,
+      async () => {
+        try {
+          const newChallenge = await challengeHelpers.createChallenge(user.id, null, {
+            title: requirementText,
+            description: requirementText,
+            level: userStats.level
+          });
+          
+          setChallenges(prev => [newChallenge, ...prev]);
+          const stats = await challengeHelpers.getUserStats(user.id);
+          setUserStats({ ...stats, level: calculateLevel(stats.completed) });
+        } catch (error) {
+          console.error('도전과제 추가 실패:', error);
+        }
       }
-      
+    );
+  };
+
+  // ✅ 수동 추가
+  const handleManualAddChallenge = async () => {
+    if (!newChallengeTitle.trim()) return;
+    
+    try {
       const newChallenge = await challengeHelpers.createChallenge(user.id, null, {
-        title: requirementText,
-        description: requirementText,
+        title: newChallengeTitle.trim(),
+        description: newChallengeTitle.trim(),
         level: userStats.level
       });
       
       setChallenges(prev => [newChallenge, ...prev]);
-      setSelectedChallenge(newChallenge);
-      setShowStartDialog(true);
+      const stats = await challengeHelpers.getUserStats(user.id);
+      setUserStats({ ...stats, level: calculateLevel(stats.completed) });
+      
+      setNewChallengeTitle('');
+      setShowAddChallengeDialog(false);
     } catch (error) {
-      console.error('도전과제 생성 실패:', error);
+      console.error('도전과제 추가 실패:', error);
     }
   };
 
@@ -280,82 +317,81 @@ const handleLogout = async () => {  // async 추가!
     loadUserData(user.id);
   };
 
-const sendMessage = async () => {
-  if (!inputMessage.trim() || isLoading) return;
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
 
-  const userMessage = inputMessage.trim();
-  setInputMessage('');
-  setIsLoading(true);
+    const userMessage = inputMessage.trim();
+    setInputMessage('');
+    setIsLoading(true);
 
-  try {
-    await conversationHelpers.addMessage(currentConversationId, 'user', userMessage);
-    const newMessages = [...messages, { role: 'user', content: userMessage }];
-    setMessages(newMessages);
+    try {
+      await conversationHelpers.addMessage(currentConversationId, 'user', userMessage);
+      const newMessages = [...messages, { role: 'user', content: userMessage }];
+      setMessages(newMessages);
 
-    const recentMessages = newMessages.slice(-MAX_CONTEXT_MESSAGES);
-    const profileText = profileHelpers.profileToText(userProfile);
-    
-    const messagesToSend = profileText 
-      ? [
-          { role: 'user', content: profileText },
-          ...recentMessages.map(m => ({
+      const recentMessages = newMessages.slice(-MAX_CONTEXT_MESSAGES);
+      const profileText = profileHelpers.profileToText(userProfile);
+      
+      const messagesToSend = profileText 
+        ? [
+            { role: 'user', content: profileText },
+            ...recentMessages.map(m => ({
+              role: m.role,
+              content: m.content
+            }))
+          ]
+        : recentMessages.map(m => ({
             role: m.role,
             content: m.content
-          }))
-        ]
-      : recentMessages.map(m => ({
-          role: m.role,
-          content: m.content
-        }));
-    
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        messages: messagesToSend,
-        token: user.id 
-      })
-    });
-
-    if (!response.ok) throw new Error('API 호출 실패');
-
-    const data = await response.json();
-    const assistantMessage = data.message.replace(/\*\*/g, '');
-
-    await conversationHelpers.addMessage(currentConversationId, 'assistant', assistantMessage);
-    setMessages([...newMessages, { role: 'assistant', content: assistantMessage }]);
-
-    // ✅ 프로필 새로고침!
-    const updatedProfile = await profileHelpers.getProfile(user.id);
-    setUserProfile(updatedProfile.profile_data || {});
-
-    // ✅ 도전과제 생성 제안 감지!
-    if (data.suggested_challenge) {
-      setSuggestedChallenge(data.suggested_challenge);
-    }
-
-    // 도전과제 완료 체크
-    if (activeChallengeId && (userMessage.includes('다했어') || userMessage.includes('완료했어') || userMessage.includes('끝났어'))) {
-      const shouldComplete = window.confirm('🎉 축하해!\n\n이 도전과제를 달성 체크하시겠습니까?');
+          }));
       
-      if (shouldComplete) {
-        await challengeHelpers.completeChallenge(activeChallengeId);
-        setChallenges(prev => prev.map(c => c.id === activeChallengeId ? { ...c, status: 'completed' } : c));
-        
-        setTimeout(() => {
-          alert('✅ 도전과제 완료! 계속 화이팅! 💪');
-          handleBackToMain();
-        }, 500);
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          messages: messagesToSend,
+          token: user.id 
+        })
+      });
+
+      if (!response.ok) throw new Error('API 호출 실패');
+
+      const data = await response.json();
+      const assistantMessage = data.message.replace(/\*\*/g, '');
+
+      await conversationHelpers.addMessage(currentConversationId, 'assistant', assistantMessage);
+      setMessages([...newMessages, { role: 'assistant', content: assistantMessage }]);
+
+      const updatedProfile = await profileHelpers.getProfile(user.id);
+      setUserProfile(updatedProfile.profile_data || {});
+
+      if (data.suggested_challenge) {
+        setSuggestedChallenge(data.suggested_challenge);
       }
+
+      // ✅ 도전과제 완료 체크 (커스텀 다이얼로그)
+      if (activeChallengeId && (userMessage.includes('다했어') || userMessage.includes('완료했어') || userMessage.includes('끝났어'))) {
+        showConfirm(
+          '🎉 축하해!',
+          '이 도전과제를 달성 체크하시겠습니까?',
+          async () => {
+            await challengeHelpers.completeChallenge(activeChallengeId);
+            setChallenges(prev => prev.map(c => c.id === activeChallengeId ? { ...c, status: 'completed' } : c));
+            
+            setTimeout(() => {
+              showConfirm('완료!', '✅ 도전과제 완료! 계속 화이팅! 💪', () => handleBackToMain());
+            }, 500);
+          }
+        );
+      }
+    } catch (error) {
+      console.error('메시지 전송 실패:', error);
+      showConfirm('오류', '메시지 전송에 실패했습니다', null);
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
-  } catch (error) {
-    console.error('메시지 전송 실패:', error);
-    alert('메시지 전송에 실패했습니다');
-  } finally {
-    setIsLoading(false);
-    setTimeout(() => inputRef.current?.focus(), 100);
-  }
-};
+  };
 
   const handleToggleChallenge = async (challengeId) => {
     try {
@@ -379,20 +415,47 @@ const sendMessage = async () => {
     }
   };
 
-  const handleResetProgress = async () => {
-    if (!window.confirm('⚠️ 모든 도전과제를 삭제하고 처음부터 시작하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) return;
+  // ✅ 삭제 확인
+  const handleDeleteChallenge = (challenge) => {
+    setChallengeToDelete(challenge);
+    setShowDeleteDialog(true);
+  };
 
+  const confirmDeleteChallenge = async () => {
+    if (!challengeToDelete) return;
+    
     try {
-      for (const challenge of challenges) {
-        await supabase.from('challenges').delete().eq('id', challenge.id);
-      }
+      await supabase.from('challenges').delete().eq('id', challengeToDelete.id);
+      setChallenges(prev => prev.filter(c => c.id !== challengeToDelete.id));
       
-      setChallenges([]);
-      setUserStats({ total: 0, completed: 0, active: 0, level: 1 });
-      alert('✅ 진행상황이 초기화되었습니다.');
+      const stats = await challengeHelpers.getUserStats(user.id);
+      setUserStats({ ...stats, level: calculateLevel(stats.completed) });
+      
+      setShowDeleteDialog(false);
+      setChallengeToDelete(null);
     } catch (error) {
-      console.error('초기화 실패:', error);
+      console.error('도전과제 삭제 실패:', error);
     }
+  };
+
+  const handleResetProgress = () => {
+    showConfirm(
+      '⚠️ 경고',
+      '모든 도전과제를 삭제하고 처음부터 시작하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+      async () => {
+        try {
+          for (const challenge of challenges) {
+            await supabase.from('challenges').delete().eq('id', challenge.id);
+          }
+          
+          setChallenges([]);
+          setUserStats({ total: 0, completed: 0, active: 0, level: 1 });
+          showConfirm('완료', '✅ 진행상황이 초기화되었습니다.', null);
+        } catch (error) {
+          console.error('초기화 실패:', error);
+        }
+      }
+    );
   };
 
   const handleNewChat = async () => {
@@ -403,6 +466,7 @@ const sendMessage = async () => {
     setViewMode('chat');
     setActiveChallengeId(null);
   };
+
 
   // 로그인 화면
   if (isInitialLoading) {
@@ -580,18 +644,28 @@ const sendMessage = async () => {
 
             {/* 이번 레벨 도전과제 */}
             <div className="bg-gradient-to-r from-orange-50 to-rose-50 rounded-2xl p-4 border-2 border-orange-200 mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-bold text-orange-900 flex items-center gap-2">
-                  <Target className="w-5 h-5" />
-                  이번 레벨 도전과제
-                </h3>
-                <button
-                  onClick={() => setHideCompletedChallenges(!hideCompletedChallenges)}
-                  className="text-xs text-orange-600 hover:text-orange-800 font-medium transition-colors"
-                >
-                  {hideCompletedChallenges ? '완료 보기' : '완료 숨기기'}
-                </button>
-              </div>
+             <div className="flex items-center justify-between mb-3">
+  <h3 className="text-sm font-bold text-orange-900 flex items-center gap-2">
+    <Target className="w-5 h-5" />
+    내 도전과제
+  </h3>
+  <div className="flex gap-2">
+    {/* ✅ 추가 버튼 */}
+    <button
+      onClick={() => setShowAddChallengeDialog(true)}
+      className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-all"
+      title="도전과제 추가"
+    >
+      <Plus className="w-4 h-4" />
+    </button>
+    <button
+      onClick={() => setHideCompletedChallenges(!hideCompletedChallenges)}
+      className="text-xs text-orange-600 hover:text-orange-800 font-medium transition-colors px-3 py-2 hover:bg-orange-100 rounded-lg"
+    >
+      {hideCompletedChallenges ? '완료 보기' : '완료 숨기기'}
+    </button>
+  </div>
+</div>
               
               <div className="space-y-2">
                 {/* 미완료 과제 */}
