@@ -274,28 +274,29 @@ const handleLogout = async () => {  // async 추가!
     loadUserData(user.id);
   };
 
-  const sendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+const sendMessage = async () => {
+  if (!inputMessage.trim() || isLoading) return;
 
-    const userMessage = inputMessage.trim();
-    setInputMessage('');
-    setIsLoading(true);
+  const userMessage = inputMessage.trim();
+  setInputMessage('');
+  setIsLoading(true);
 
-    try {
-      await conversationHelpers.addMessage(currentConversationId, 'user', userMessage);
-      const newMessages = [...messages, { role: 'user', content: userMessage }];
-      setMessages(newMessages);
+  try {
+    await conversationHelpers.addMessage(currentConversationId, 'user', userMessage);
+    const newMessages = [...messages, { role: 'user', content: userMessage }];
+    setMessages(newMessages);
 
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ 
-  messages: newMessages.map(m => ({
-    role: m.role,
-    content: m.content
-  })),
-  token: user.id 
-})
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        messages: newMessages.map(m => ({  // ✅ role, content만 추출!
+          role: m.role,
+          content: m.content
+        })),
+        token: user.id 
+      })
+    });
 
       if (!response.ok) throw new Error('API 호출 실패');
 
