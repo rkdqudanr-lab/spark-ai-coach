@@ -291,7 +291,7 @@ Level 10 (최종 목표 - 35개 완료):
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 2048,
         system: SYSTEM_PROMPT,
         messages: messages,
@@ -397,7 +397,7 @@ Level 10 (최종 목표 - 35개 완료):
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
+          model: 'claude-sonnet-4-20250514',
           max_tokens: 2048,
           system: SYSTEM_PROMPT,
           messages: [
