@@ -190,24 +190,6 @@ useEffect(() => {
     handleLogout();
   }
 };
-    try {
-      const [convs, challs] = await Promise.all([
-        conversationHelpers.getConversations(userId),
-        challengeHelpers.getChallenges(userId)
-      ]);
-      
-      setConversations(convs);
-      setChallenges(challs);
-      
-      const stats = await challengeHelpers.getUserStats(userId);
-      setUserStats({ ...stats, level: calculateLevel(stats.completed) });
-    } catch (error) {
-      console.error('데이터 로드 실패:', error);
-      // 로드 실패 시 로그아웃
-      alert('데이터를 불러오는데 실패했습니다. 다시 로그인해주세요.');
-      handleLogout();
-    }
-  };
 
   const handleSignIn = async (e) => {
     e.preventDefault();
