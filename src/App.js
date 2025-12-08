@@ -5,6 +5,7 @@ import {
   authHelpers, 
   conversationHelpers, 
   challengeHelpers,
+  profileHelpers,  // ✅ 추가!
   supabase
 } from './supabaseClient';
 
@@ -121,6 +122,7 @@ function App() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [authError, setAuthError] = useState('');
+  const [userProfile, setUserProfile] = useState({});
 
   // 뷰
   const [viewMode, setViewMode] = useState('main');
@@ -169,6 +171,25 @@ useEffect(() => {
   }, [messages]);
 
   const loadUserData = async (userId) => {
+    try {
+    const [convs, challs, profile] = await Promise.all([  // ✅ profile 추가!
+      conversationHelpers.getConversations(userId),
+      challengeHelpers.getChallenges(userId),
+      profileHelpers.getProfile(userId)  // ✅ 추가!
+    ]);
+    
+    setConversations(convs);
+    setChallenges(challs);
+    setUserProfile(profile.profile_data || {});  // ✅ 추가!
+    
+    const stats = await challengeHelpers.getUserStats(userId);
+    setUserStats({ ...stats, level: calculateLevel(stats.completed) });
+  } catch (error) {
+    console.error('데이터 로드 실패:', error);
+    alert('데이터를 불러오는데 실패했습니다. 다시 로그인해주세요.');
+    handleLogout();
+  }
+};
     try {
       const [convs, challs] = await Promise.all([
         conversationHelpers.getConversations(userId),
@@ -289,18 +310,32 @@ const sendMessage = async () => {
     setMessages(newMessages);
 
     const recentMessages = newMessages.slice(-MAX_CONTEXT_MESSAGES);
-
-const response = await fetch('/api/chat', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ 
-    messages: recentMessages.map(m => ({  // ✅
-      role: m.role,
-      content: m.content
-    })),
-    token: user.id 
-  })
-});
+    
+    // ✅ 프로필 텍스트 생성
+    const profileText = profileHelpers.profileToText(userProfile);
+    
+    // ✅ 프로필이 있으면 시스템 메시지 추가
+    const messagesToSend = profileText 
+      ? [
+          { role: 'user', content: profileText },  // 프로필 정보
+          ...recentMessages.map(m => ({
+            role: m.role,
+            content: m.content
+          }))
+        ]
+      : recentMessages.map(m => ({
+          role: m.role,
+          content: m.content
+        }));
+    
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        messages: messagesToSend,  // ✅ 프로필 포함!
+        token: user.id 
+      })
+    });
 
       if (!response.ok) throw new Error('API 호출 실패');
 
