@@ -734,60 +734,100 @@ function App() {
                 })}
 
                 {/* 추가 도전과제 */}
-                {levelChallenges.filter(c => {
-                  const isExtra = !currentLevelInfo.requirements.some(req => {
-                    const reqLower = req.toLowerCase();
-                    const titleLower = c.title.toLowerCase();
-                    const descLower = c.description.toLowerCase();
-                    
-                    if (titleLower === reqLower || descLower === reqLower) return true;
-                    
-                    const reqWords = reqLower.split(' ').filter(w => w.length > 2);
-                    const matchCount = reqWords.filter(word => titleLower.includes(word) || descLower.includes(word)).length;
-                    
-                    return reqWords.length > 0 && matchCount >= Math.ceil(reqWords.length / 2);
-                  });
+               {/* 추가 도전과제 */}
+{challenges
+  .filter(c => hideCompletedChallenges ? c.status !== 'completed' : true)
+  .map(challenge => (
+    <div
+      key={challenge.id}
+      className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
+        challenge.status === 'completed' 
+          ? 'hover:bg-green-50 opacity-60' 
+          : 'hover:bg-orange-100'
+      }`}
+    >
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          handleToggleChallenge(challenge.id);
+        }}
+        className="flex-shrink-0 transform transition-transform hover:scale-110"
+      >
+        {challenge.status === 'completed' ? (
+          <CheckCircle className="w-5 h-5 text-green-600" />
+        ) : (
+          <Circle className="w-5 h-5 text-orange-500" />
+        )}
+      </button>
+      
+      <button
+        onClick={() => handleChallengeTextClick(challenge)}
+        className={`flex-1 text-left text-sm transition-colors ${
+          challenge.status === 'completed' 
+            ? 'text-gray-600 line-through' 
+            : 'text-gray-800 hover:text-orange-600'
+        }`}
+      >
+        {challenge.title}
+      </button>
+
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          handleDeleteChallenge(challenge);
+        }}
+        className="flex-shrink-0 p-2 hover:bg-red-100 rounded-lg transition-all opacity-70 hover:opacity-100"
+        title="삭제"
+      >
+        <Trash2 className="w-4 h-4 text-red-600" />
+      </button>
+    </div>
+  ))}
+              </div>
+            </div>
+{/* ✅ 레벨 추천 과제 */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4 border-2 border-blue-200 mb-4">
+              <h3 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
+                💡 Level {userStats.level} 추천 과제
+              </h3>
+              
+              <div className="space-y-2">
+                {currentLevelInfo.requirements.map((req, idx) => {
+                  const alreadyAdded = challenges.some(c => 
+                    c.title === req || c.description === req
+                  );
                   
-                  if (hideCompletedChallenges && c.status === 'completed') return false;
-                  return isExtra;
-                }).map(challenge => (
-                  <div
-                    key={challenge.id}
-                    className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                      challenge.status === 'completed' 
-                        ? 'hover:bg-green-50 opacity-60' 
-                        : 'hover:bg-orange-100'
-                    }`}
-                  >
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleChallenge(challenge.id);
-                      }}
-                      className="flex-shrink-0 transform transition-transform hover:scale-110"
+                  return (
+                    <div
+                      key={`rec-${userStats.level}-${idx}`}
+                      className="flex items-start gap-3 p-3 rounded-xl hover:bg-blue-100 transition-all"
                     >
-                      {challenge.status === 'completed' ? (
-                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      <Circle className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-500" />
+                      <button
+                        onClick={() => !alreadyAdded && handleAddRecommendedChallenge(req)}
+                        className="flex-1 text-left text-sm text-gray-800 hover:text-blue-600 transition-colors"
+                        disabled={alreadyAdded}
+                      >
+                        {req}
+                      </button>
+                      
+                      {alreadyAdded ? (
+                        <span className="text-xs text-green-600 font-medium">✓ 추가됨</span>
                       ) : (
-                        <Circle className="w-5 h-5 text-orange-500" />
+                        <button
+                          onClick={() => handleAddRecommendedChallenge(req)}
+                          className="flex-shrink-0 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg transition-all font-medium"
+                        >
+                          추가
+                        </button>
                       )}
-                    </button>
-                    
-                    <button
-                      onClick={() => handleChallengeTextClick(challenge)}
-                      className={`flex-1 text-left text-sm transition-colors ${
-                        challenge.status === 'completed' 
-                          ? 'text-gray-600 line-through' 
-                          : 'text-gray-800 hover:text-orange-600'
-                      }`}
-                    >
-                      {challenge.title}
-                    </button>
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
+            {/* 통계 */}
             {/* 통계 */}
             <div className="grid grid-cols-3 gap-3 mb-3">
               <div className="bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl p-3 text-center border border-orange-300 transform transition-transform hover:scale-105">
@@ -887,35 +927,97 @@ function App() {
             </svg>
             맨 위로
           </button>
-
-          {/* 대화 시작 확인 다이얼로그 */}
-          {showStartDialog && selectedChallenge && (
+                  {showAddChallengeDialog && (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 animate-fade-in">
               <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-scale-in">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">도전과제 시작</h3>
-                <p className="text-gray-700 mb-4">"{selectedChallenge.title}"</p>
-                <p className="text-sm text-gray-600 mb-6">이 도전과제에 대해 SPARK와 대화해볼까요?</p>
+                <h3 className="text-lg font-bold text-gray-900 mb-4">도전과제 추가</h3>
+                <input
+                  type="text"
+                  value={newChallengeTitle}
+                  onChange={(e) => setNewChallengeTitle(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleManualAddChallenge()}
+                  placeholder="도전과제 제목을 입력하세요"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all mb-4"
+                  autoFocus
+                />
                 <div className="flex gap-3">
                   <button
                     onClick={() => {
-                      setShowStartDialog(false);
-                      setSelectedChallenge(null);
+                      setShowAddChallengeDialog(false);
+                      setNewChallengeTitle('');
                     }}
                     className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all"
                   >
                     취소
                   </button>
                   <button
-                    onClick={handleConfirmStart}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105"
+                    onClick={handleManualAddChallenge}
+                    disabled={!newChallengeTitle.trim()}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:transform-none"
                   >
-                    시작하기
+                    추가
                   </button>
                 </div>
               </div>
             </div>
           )}
 
+          {/* 커스텀 확인 다이얼로그 */}
+          {showConfirmDialog && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 animate-fade-in">
+              <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-scale-in">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">{confirmDialogData.title}</h3>
+                <p className="text-gray-700 mb-6 whitespace-pre-line">{confirmDialogData.message}</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowConfirmDialog(false)}
+                    className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirmDialogData.onConfirm) {
+                        confirmDialogData.onConfirm();
+                      }
+                      setShowConfirmDialog(false);
+                    }}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105"
+                  >
+                    확인
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 삭제 확인 다이얼로그 */}
+          {showDeleteDialog && challengeToDelete && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 animate-fade-in">
+              <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-scale-in">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">도전과제 삭제</h3>
+                <p className="text-gray-700 mb-4">"{challengeToDelete.title}"</p>
+                <p className="text-sm text-gray-600 mb-6">정말 삭제하시겠습니까?</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowDeleteDialog(false);
+                      setChallengeToDelete(null);
+                    }}
+                    className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={confirmDeleteChallenge}
+                    className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold transition-all transform hover:scale-105"
+                  >
+                    삭제
+                  </button>
+                </div>
+              </div>
+            </div>
+ )}
           {/* 레벨 로드맵 */}
           {showLevelRoadmap && (
             <div 
