@@ -8,6 +8,8 @@ import {
   supabase
 } from './supabaseClient';
 
+const MAX_CONTEXT_MESSAGES = 20;
+
 // 에러 경계 컴포넌트
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -286,6 +288,8 @@ const sendMessage = async () => {
     const newMessages = [...messages, { role: 'user', content: userMessage }];
     setMessages(newMessages);
 
+    const recentMessages = newMessages.slice(-20);
+    
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
