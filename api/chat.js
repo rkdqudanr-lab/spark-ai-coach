@@ -429,7 +429,50 @@ SPARK:
                 }
               }
             }
-          }
+          },
+          {
+    name: "suggest_challenge",
+    description: "사용자에게 도전과제를 제안합니다. '도전과제에 넣어줘', '저장해줘', '과제로 만들어줘' 같은 요청 시 사용하세요.",
+    input_schema: {
+      type: "object",
+      properties: {
+        title: {
+          type: "string",
+          description: "도전과제 제목 (15자 이내)"
+        },
+        description: {
+          type: "string",
+          description: "도전과제 설명"
+        }
+      },
+      required: ["title"]
+    }
+  }
+]
+
+// Tool 처리
+let suggestedChallenge = null;
+
+for (const block of data.content) {
+  if (block.type === 'text') {
+    finalText += block.text;
+  } else if (block.type === 'tool_use') {
+    if (block.name === 'update_user_profile' && userId) {
+      await updateUserProfile(userId, block.input);
+      profileUpdated = true;
+    } else if (block.name === 'suggest_challenge') {
+      // 도전과제 제안!
+      suggestedChallenge = block.input;
+    }
+  }
+}
+
+// 응답에 포함
+res.status(200).json({
+  success: true,
+  message: finalText.trim(),
+  suggested_challenge: suggestedChallenge  // ✅ 추가!
+});
         ]
       })
     });
