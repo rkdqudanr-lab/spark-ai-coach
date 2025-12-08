@@ -375,8 +375,6 @@ export const challengeHelpers = {
   }
 };
 
-export default supabase;
-
 // supabaseClient.js - 프로필 헬퍼 추가
 
 // ========================================
