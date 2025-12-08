@@ -472,7 +472,6 @@ res.status(200).json({
   success: true,
   message: finalText.trim(),
   suggested_challenge: suggestedChallenge  // ✅ 추가!
-});
         ]
       })
     });
