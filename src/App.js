@@ -288,19 +288,19 @@ const sendMessage = async () => {
     const newMessages = [...messages, { role: 'user', content: userMessage }];
     setMessages(newMessages);
 
-    const recentMessages = newMessages.slice(-20);
-    
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        messages: newMessages.map(m => ({  // ✅ role, content만 추출!
-          role: m.role,
-          content: m.content
-        })),
-        token: user.id 
-      })
-    });
+    const recentMessages = newMessages.slice(-MAX_CONTEXT_MESSAGES);
+
+const response = await fetch('/api/chat', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ 
+    messages: recentMessages.map(m => ({  // ✅
+      role: m.role,
+      content: m.content
+    })),
+    token: user.id 
+  })
+});
 
       if (!response.ok) throw new Error('API 호출 실패');
 
