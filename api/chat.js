@@ -1,6 +1,55 @@
 // api/chat.js
-// Vercel Serverless Function
+// Vercel Serverless Function - 자동 프로필 학습 추가
 
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.REACT_APP_SUPABASE_URL,
+  process.env.REACT_APP_SUPABASE_ANON_KEY
+);
+
+// ========================================
+// 프로필 업데이트 함수
+// ========================================
+async function updateUserProfile(userId, updates) {
+  try {
+    const { data: existing } = await supabase
+      .from('user_profile')
+      .select('profile_data')
+      .eq('user_id', userId)
+      .single();
+
+    const currentData = existing?.profile_data || {};
+    const newData = { ...currentData, ...updates };
+
+    if (existing) {
+      await supabase
+        .from('user_profile')
+        .update({ 
+          profile_data: newData,
+          last_updated: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+    } else {
+      await supabase
+        .from('user_profile')
+        .insert([{ 
+          user_id: userId, 
+          profile_data: newData 
+        }]);
+    }
+
+    console.log('✅ 프로필 자동 업데이트:', updates);
+    return true;
+  } catch (error) {
+    console.error('프로필 업데이트 실패:', error);
+    return false;
+  }
+}
+
+// ========================================
+// 메인 핸들러
+// ========================================
 export default async function handler(req, res) {
   // CORS 헤더 설정
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -20,7 +69,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { messages } = req.body;
+    const { messages, token: userId } = req.body;
 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'messages 배열이 필요합니다' });
@@ -336,7 +385,9 @@ SPARK:
 
 이 여정을 함께 완주하세요! 🚀`;
 
-    // Claude API 호출
+    // ========================================
+    // Claude API 호출 (Tools 추가)
+    // ========================================
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -345,10 +396,41 @@ SPARK:
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'claude-sonnet-4-20250514', // Sonnet 4로 변경 (Tools 지원)
         max_tokens: 2048,
         system: SYSTEM_PROMPT,
-        messages: messages
+        messages: messages,
+        tools: [
+          {
+            name: "update_user_profile",
+            description: "사용자의 창업 정보를 자동으로 저장합니다. 대화에서 중요한 정보를 발견하면 사용하세요.",
+            input_schema: {
+              type: "object",
+              properties: {
+                startup_idea: {
+                  type: "string",
+                  description: "사용자의 창업 아이템 (예: AI 기반 취업 플랫폼)"
+                },
+                target: {
+                  type: "string",
+                  description: "사용자의 목표 (예: 2025년 예비창업패키지)"
+                },
+                current_focus: {
+                  type: "string",
+                  description: "현재 집중하고 있는 작업 (예: 시장조사)"
+                },
+                recent_achievement: {
+                  type: "string",
+                  description: "최근 달성한 것 (예: 블로그 3개 작성)"
+                },
+                challenge: {
+                  type: "string",
+                  description: "현재 어려워하는 것 (예: 사업계획서 작성)"
+                }
+              }
+            }
+          }
+        ]
       })
     });
 
@@ -359,9 +441,71 @@ SPARK:
 
     const data = await response.json();
     
+    // ========================================
+    // Tool 사용 처리
+    // ========================================
+    let finalText = '';
+    let profileUpdated = false;
+    
+    for (const block of data.content) {
+      if (block.type === 'text') {
+        finalText += block.text;
+      } else if (block.type === 'tool_use' && block.name === 'update_user_profile') {
+        // Claude가 프로필 업데이트 요청!
+        if (userId) {
+          await updateUserProfile(userId, block.input);
+          profileUpdated = true;
+        }
+      }
+    }
+
+    // ========================================
+    // Tool 사용 시 재호출 (선택)
+    // ========================================
+    if (profileUpdated && data.stop_reason === 'tool_use') {
+      // Tool 결과 전달하고 계속 대화
+      const toolResults = data.content
+        .filter(block => block.type === 'tool_use')
+        .map(block => ({
+          type: 'tool_result',
+          tool_use_id: block.id,
+          content: 'Profile updated successfully'
+        }));
+
+      const continueResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2048,
+          system: SYSTEM_PROMPT,
+          messages: [
+            ...messages,
+            {
+              role: 'assistant',
+              content: data.content
+            },
+            {
+              role: 'user',
+              content: toolResults
+            }
+          ]
+        })
+      });
+
+      if (continueResponse.ok) {
+        const continueData = await continueResponse.json();
+        finalText = continueData.content.find(b => b.type === 'text')?.text || finalText;
+      }
+    }
+
     res.status(200).json({
       success: true,
-      message: data.content[0].text
+      message: finalText.trim()
     });
 
   } catch (error) {
