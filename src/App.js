@@ -316,6 +316,19 @@ function App() {
     setMessages([]);
     loadUserData(user.id);
   };
+  const handleRequiredChallengeStart = async (requirementText) => {
+    // 해당 requirement에 맞는 challenge 생성
+    const newChallenge = await challengeHelpers.createChallenge(user.id, null, {
+      title: requirementText,
+      description: requirementText,
+      level: userStats.level
+    });
+    
+    setChallenges(prev => [newChallenge, ...prev]);
+    
+    // 바로 대화 시작
+    handleChallengeTextClick(newChallenge);
+  };
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
