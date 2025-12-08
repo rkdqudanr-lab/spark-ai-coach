@@ -376,3 +376,123 @@ export const challengeHelpers = {
 };
 
 export default supabase;
+
+// supabaseClient.js - 프로필 헬퍼 추가
+
+// ========================================
+// 프로필 헬퍼 (사용자 학습 정보)
+// ========================================
+export const profileHelpers = {
+  // 프로필 가져오기
+  getProfile: async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_profile')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error) {
+        // 프로필 없으면 빈 객체
+        if (error.code === 'PGRST116') {
+          return { profile_data: {} };
+        }
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('프로필 가져오기 실패:', error);
+      return { profile_data: {} };
+    }
+  },
+
+  // 프로필 업데이트
+  updateProfile: async (userId, profileData) => {
+    try {
+      // 프로필 존재 확인
+      const { data: existing } = await supabase
+        .from('user_profile')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (existing) {
+        // 업데이트
+        const { error } = await supabase
+          .from('user_profile')
+          .update({
+            profile_data: profileData,
+            last_updated: new Date().toISOString()
+          })
+          .eq('user_id', userId);
+
+        if (error) throw error;
+      } else {
+        // 생성
+        const { error } = await supabase
+          .from('user_profile')
+          .insert([{
+            user_id: userId,
+            profile_data: profileData
+          }]);
+
+        if (error) throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('프로필 업데이트 실패:', error);
+      return false;
+    }
+  },
+
+  // 프로필 필드 추가/수정
+  updateProfileField: async (userId, key, value) => {
+    try {
+      const profile = await profileHelpers.getProfile(userId);
+      const newData = {
+        ...profile.profile_data,
+        [key]: value
+      };
+      
+      return await profileHelpers.updateProfile(userId, newData);
+    } catch (error) {
+      console.error('프로필 필드 업데이트 실패:', error);
+      return false;
+    }
+  },
+
+  // 프로필을 텍스트로 변환 (Claude에게 전달용)
+  profileToText: (profileData) => {
+    if (!profileData || Object.keys(profileData).length === 0) {
+      return '';
+    }
+
+    let text = '# 사용자 정보\n\n';
+
+    if (profileData.startup_idea) {
+      text += `창업 아이템: ${profileData.startup_idea}\n`;
+    }
+    if (profileData.target) {
+      text += `목표: ${profileData.target}\n`;
+    }
+    if (profileData.progress) {
+      text += `진행상황:\n`;
+      Object.entries(profileData.progress).forEach(([key, val]) => {
+        text += `- ${key}: ${val}\n`;
+      });
+    }
+    if (profileData.strengths && profileData.strengths.length > 0) {
+      text += `강점: ${profileData.strengths.join(', ')}\n`;
+    }
+    if (profileData.challenges && profileData.challenges.length > 0) {
+      text += `고민/과제: ${profileData.challenges.join(', ')}\n`;
+    }
+
+    return text;
+  }
+};
+
+// supabaseClient.js 맨 아래에 추가:
+export default supabase;
