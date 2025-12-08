@@ -289,8 +289,13 @@ const handleLogout = async () => {  // async 추가!
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, token: user.id })
-      });
+body: JSON.stringify({ 
+  messages: newMessages.map(m => ({
+    role: m.role,
+    content: m.content
+  })),
+  token: user.id 
+})
 
       if (!response.ok) throw new Error('API 호출 실패');
 
