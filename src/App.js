@@ -1022,6 +1022,48 @@ const sendMessage = async () => {
           <div ref={messagesEndRef} />
         </div>
       </div>
+{suggestedChallenge && (
+  <div className="mx-4 mb-4 animate-slide-up">
+    <div className="bg-gradient-to-r from-orange-50 to-rose-50 border-2 border-orange-300 rounded-2xl p-4 shadow-lg">
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center">
+          <Target className="w-6 h-6 text-white" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-bold text-orange-900 mb-1">💡 도전과제 제안</p>
+          <p className="text-sm text-gray-700 mb-3">{suggestedChallenge.title}</p>
+          <div className="flex gap-2">
+            <button
+              onClick={async () => {
+                const newChallenge = await challengeHelpers.createChallenge(
+                  user.id, 
+                  currentConversationId,
+                  {
+                    title: suggestedChallenge.title,
+                    description: suggestedChallenge.description || suggestedChallenge.title,
+                    level: userStats.level
+                  }
+                );
+                setChallenges(prev => [newChallenge, ...prev]);
+                setSuggestedChallenge(null);
+                alert('✅ 도전과제에 추가되었습니다!');
+              }}
+              className="flex-1 px-4 py-2 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white rounded-xl font-semibold text-sm hover:shadow-lg transition-all"
+            >
+              ➕ 도전과제 추가
+            </button>
+            <button
+              onClick={() => setSuggestedChallenge(null)}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-200 transition-all"
+            >
+              나중에
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* 입력 영역 - 하단 고정 */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-orange-200 shadow-lg z-20">
