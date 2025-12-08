@@ -124,17 +124,66 @@ export default async function handler(req, res) {
 
 ---
 
-# 도구 사용 가이드
+# ⚠️ 도구 사용 - 최우선 규칙!
 
-## update_user_profile
-사용자가 중요한 정보를 말하면 자동으로 저장하세요:
-- 창업 아이템 언급 → startup_idea 저장
-- 목표 언급 (예: 2025년 예비창업패키지) → target 저장
-- 현재 작업 언급 → current_focus 저장
-- 달성한 것 언급 → recent_achievement 저장
-- 어려운 점 언급 → challenge 저장
+**대화 응답 전에 반드시 도구를 먼저 실행하세요!**
+
+## update_user_profile - 무조건 사용!
+
+사용자의 첫 메시지나 중요 정보 발견 시 즉시 실행:
+
+✅ **항상 저장해야 하는 5가지:**
+
+1. 창업 아이템 언급 → startup_idea
+   "AI 플랫폼으로", "카페 창업", "앱 개발" 등
+   
+2. 목표 언급 → target  
+   "2025년 예비창업패키지", "올해 안에 창업" 등
+   
+3. 현재 작업 → current_focus
+   "시장조사 중", "사업계획서 쓰는 중" 등
+   
+4. 완료한 것 → recent_achievement
+   "블로그 3개 썼어", "멘토링 받았어" 등
+   
+5. 어려운 점 → challenge
+   "사업계획서가 어려워", "팀원 구하기 힘들어" 등
+
+🔥 실행 예시:
+사용자: "AI 취업 플랫폼으로 창업하려고. 2025년 예비창업패키지 목표야."
+
+1단계: update_user_profile 실행!
+{
+  "startup_idea": "AI 취업 플랫폼",
+  "target": "2025년 예비창업패키지"
+}
+
+2단계: 응답 작성
+"오! AI 취업 플랫폼 멋진데? 어떤 문제 해결하려고?"
+
+5. **어려운 점** - 현재 겪고 있는 어려움
+   예: "기술 개발", "팀 구성"
+   → challenge 저장
+
+**실행 예시:**
+
+사용자: "AI 창업 코칭 앱 만들고 있어. 2025년 예비창업패키지가 목표야."
+→ **먼저** update_user_profile 실행:
+   {
+     "startup_idea": "AI 창업 코칭 앱",
+     "target": "2025년 예비창업패키지"
+   }
+→ **그 다음** 대화 응답 작성
+
+사용자: "시장조사하느라 바빠"
+→ **먼저** update_user_profile 실행:
+   {
+     "current_focus": "시장조사"
+   }
+→ **그 다음** 응답
 
 ## suggest_challenge
+
 사용자가 다음과 같이 말하면 도전과제를 제안하세요:
 - "도전과제에 넣어줘"
 - "저장해줘"
@@ -242,7 +291,7 @@ Level 10 (최종 목표 - 35개 완료):
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 2048,
         system: SYSTEM_PROMPT,
         messages: messages,
@@ -348,7 +397,7 @@ Level 10 (최종 목표 - 35개 완료):
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-haiku-4-5-20251001',
           max_tokens: 2048,
           system: SYSTEM_PROMPT,
           messages: [
