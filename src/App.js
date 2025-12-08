@@ -1021,8 +1021,7 @@ const sendMessage = async () => {
 
           <div ref={messagesEndRef} />
         </div>
-      </div>
-{suggestedChallenge && (
+        {suggestedChallenge && (
   <div className="mx-4 mb-4 animate-slide-up">
     <div className="bg-gradient-to-r from-orange-50 to-rose-50 border-2 border-orange-300 rounded-2xl p-4 shadow-lg">
       <div className="flex items-start gap-3">
@@ -1064,6 +1063,8 @@ const sendMessage = async () => {
     </div>
   </div>
 )}
+      </div>
+
 
       {/* 입력 영역 - 하단 고정 */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-orange-200 shadow-lg z-20">
