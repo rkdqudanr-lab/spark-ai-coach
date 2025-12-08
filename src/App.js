@@ -123,6 +123,7 @@ function App() {
   const [name, setName] = useState('');
   const [authError, setAuthError] = useState('');
   const [userProfile, setUserProfile] = useState({});
+  const [suggestedChallenge, setSuggestedChallenge] = useState(null);  // ✅ 추가!
 
   // 뷰
   const [viewMode, setViewMode] = useState('main');
@@ -292,14 +293,11 @@ const sendMessage = async () => {
     setMessages(newMessages);
 
     const recentMessages = newMessages.slice(-MAX_CONTEXT_MESSAGES);
-    
-    // ✅ 프로필 텍스트 생성
     const profileText = profileHelpers.profileToText(userProfile);
     
-    // ✅ 프로필이 있으면 시스템 메시지 추가
     const messagesToSend = profileText 
       ? [
-          { role: 'user', content: profileText },  // 프로필 정보
+          { role: 'user', content: profileText },
           ...recentMessages.map(m => ({
             role: m.role,
             content: m.content
@@ -314,40 +312,50 @@ const sendMessage = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        messages: messagesToSend,  // ✅ 프로필 포함!
+        messages: messagesToSend,
         token: user.id 
       })
     });
 
-      if (!response.ok) throw new Error('API 호출 실패');
+    if (!response.ok) throw new Error('API 호출 실패');
 
-      const data = await response.json();
-      const assistantMessage = data.message.replace(/\*\*/g, '');
+    const data = await response.json();
+    const assistantMessage = data.message.replace(/\*\*/g, '');
 
-      await conversationHelpers.addMessage(currentConversationId, 'assistant', assistantMessage);
-      setMessages([...newMessages, { role: 'assistant', content: assistantMessage }]);
+    await conversationHelpers.addMessage(currentConversationId, 'assistant', assistantMessage);
+    setMessages([...newMessages, { role: 'assistant', content: assistantMessage }]);
 
-      if (activeChallengeId && (userMessage.includes('다했어') || userMessage.includes('완료했어') || userMessage.includes('끝났어'))) {
-        const shouldComplete = window.confirm('🎉 축하해!\n\n이 도전과제를 달성 체크하시겠습니까?');
-        
-        if (shouldComplete) {
-          await challengeHelpers.completeChallenge(activeChallengeId);
-          setChallenges(prev => prev.map(c => c.id === activeChallengeId ? { ...c, status: 'completed' } : c));
-          
-          setTimeout(() => {
-            alert('✅ 도전과제 완료! 계속 화이팅! 💪');
-            handleBackToMain();
-          }, 500);
-        }
-      }
-    } catch (error) {
-      console.error('메시지 전송 실패:', error);
-      alert('메시지 전송에 실패했습니다');
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => inputRef.current?.focus(), 100);
+    // ✅ 프로필 새로고침!
+    const updatedProfile = await profileHelpers.getProfile(user.id);
+    setUserProfile(updatedProfile.profile_data || {});
+
+    // ✅ 도전과제 생성 제안 감지!
+    if (data.suggested_challenge) {
+      setSuggestedChallenge(data.suggested_challenge);
     }
-  };
+
+    // 도전과제 완료 체크
+    if (activeChallengeId && (userMessage.includes('다했어') || userMessage.includes('완료했어') || userMessage.includes('끝났어'))) {
+      const shouldComplete = window.confirm('🎉 축하해!\n\n이 도전과제를 달성 체크하시겠습니까?');
+      
+      if (shouldComplete) {
+        await challengeHelpers.completeChallenge(activeChallengeId);
+        setChallenges(prev => prev.map(c => c.id === activeChallengeId ? { ...c, status: 'completed' } : c));
+        
+        setTimeout(() => {
+          alert('✅ 도전과제 완료! 계속 화이팅! 💪');
+          handleBackToMain();
+        }, 500);
+      }
+    }
+  } catch (error) {
+    console.error('메시지 전송 실패:', error);
+    alert('메시지 전송에 실패했습니다');
+  } finally {
+    setIsLoading(false);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }
+};
 
   const handleToggleChallenge = async (challengeId) => {
     try {
