@@ -3,8 +3,6 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-import { createClient } from '@supabase/supabase-js';
-
 // 서버사이드용 (RLS 우회)
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL,
