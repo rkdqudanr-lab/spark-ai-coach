@@ -566,25 +566,28 @@ const handleConfirmStart = async () => {
     }
   };
 
-  const handleResetProgress = () => {
-    showConfirm(
-      '⚠️ 경고',
-      '모든 도전과제를 삭제하고 처음부터 시작하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
-      async () => {
-        try {
-          for (const challenge of challenges) {
-            await supabase.from('challenges').delete().eq('id', challenge.id);
-          }
-          
-          setChallenges([]);
-          setUserStats({ total: 0, completed: 0, active: 0, level: 1 });
-          showConfirm('완료', '✅ 진행상황이 초기화되었습니다.', null);
-        } catch (error) {
-          console.error('초기화 실패:', error);
-        }
-      }
-    );
-  };
+const handleResetProgress = async () => {
+  if (!window.confirm('⚠️ 경고\n\n모든 도전과제를 삭제하고 처음부터 시작하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')) {
+    return;
+  }
+  
+  try {
+    // 모든 도전과제 삭제
+    for (const challenge of challenges) {
+      await supabase.from('challenges').delete().eq('id', challenge.id);
+    }
+    
+    // 상태 초기화
+    setChallenges([]);
+    setUserStats({ total: 0, completed: 0, active: 0, level: 1 });
+    
+    // 완료 메시지
+    alert('✅ 진행상황이 초기화되었습니다.');
+  } catch (error) {
+    console.error('초기화 실패:', error);
+    alert('❌ 초기화에 실패했습니다. 다시 시도해주세요.');
+  }
+};
 
   const handleNewChat = async () => {
     const conv = await conversationHelpers.createConversation(user.id, '새 대화');
