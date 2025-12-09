@@ -3,9 +3,24 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+import { createClient } from '@supabase/supabase-js';
+
+// 서버사이드용 (RLS 우회)
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
+
+// 기존 클라이언트도 유지
 const supabase = createClient(
-  process.env.REACT_APP_SUPABASE_URL || process.env.SUPABASE_URL,
-  process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY
 );
 
 // ========================================
@@ -394,7 +409,7 @@ Level 10 (최종 목표 - 35개 완료):
           profileUpdated = true;
 } else if (block.name === 'suggest_challenge' && userId) {
           try {
-            const { data: newChallenge, error } = await supabase
+            const { data: newChallenge, error } = await supabaseAdmin
               .from('challenges')
               .insert([{
                 user_id: userId,
