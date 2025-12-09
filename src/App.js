@@ -745,14 +745,16 @@ const handleResetProgress = async () => {
             💬 새 대화 시작
           </button>
 
-{/* 내 도전과제 */}
-<div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl p-6 animate-fade-in">
-  <div className="flex items-center gap-2 mb-4">
+{/* 내 진행상황 - 헤더만 */}
+<div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl p-6 animate-fade-in mb-4">
+  <div className="flex items-center gap-2">
     <Trophy className="w-6 h-6 text-orange-600" />
     <h2 className="text-xl font-bold text-gray-900">내 진행상황</h2>
   </div>
+</div>
 
-  {/* 레벨 카드 */}
+{/* 레벨 카드 - 별도 카드 */}
+<div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl p-6 animate-fade-in">
   <button
     onClick={() => setShowLevelRoadmap(true)}
     className={`w-full bg-gradient-to-r ${currentLevelInfo.bgColor} rounded-2xl p-6 mb-6 border-2 border-orange-200 shadow-md hover:shadow-lg transition-all transform hover:scale-105`}
