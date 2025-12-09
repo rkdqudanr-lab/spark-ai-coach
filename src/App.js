@@ -745,231 +745,173 @@ const handleResetProgress = async () => {
             💬 새 대화 시작
           </button>
 
-          {/* 내 진행상황 */}
-          <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl p-6 animate-fade-in">
-            <div className="flex items-center gap-2 mb-4">
-              <Trophy className="w-6 h-6 text-orange-600" />
-              <h2 className="text-xl font-bold text-gray-900">내 진행상황</h2>
-            </div>
-
-            {/* 레벨 카드 */}
-            <button
-              onClick={() => setShowLevelRoadmap(true)}
-              className={`w-full bg-gradient-to-r ${currentLevelInfo.bgColor} rounded-2xl p-6 mb-6 border-2 border-orange-200 shadow-md hover:shadow-lg transition-all transform hover:scale-105`}
-            >
-              <div className="flex items-center gap-4 mb-4">
-                <div className="text-6xl">{currentLevelInfo.emoji}</div>
-                <div className="flex-1 text-left">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`text-lg font-bold bg-gradient-to-r ${currentLevelInfo.color} bg-clip-text text-transparent`}>
-                      Level {userStats.level}
-                    </span>
-                    {userStats.level < 10 && (
-                      <span className="text-sm text-gray-600 font-medium">{nextLevelChallenges}개 남음</span>
-                    )}
-                  </div>
-                  <p className="text-sm font-semibold text-gray-800 mb-1">{currentLevelInfo.title}</p>
-                  <p className="text-xs text-gray-600">{currentLevelInfo.description}</p>
-                </div>
-              </div>
-              
-              {userStats.level < 10 && (
-                <div className="w-full bg-white/50 rounded-full h-3 overflow-hidden">
-                  <div 
-                    className={`bg-gradient-to-r ${currentLevelInfo.color} h-3 rounded-full transition-all duration-500`}
-                    style={{ width: `${(userStats.completed / LEVEL_SYSTEM[userStats.level + 1].requiredChallenges) * 100}%` }}
-                  />
-                </div>
-              )}
-              
-              <p className="text-xs text-center text-orange-600 font-medium mt-3">클릭하여 전체 로드맵 보기 →</p>
-            </button>
-
-            {/* 이번 레벨 도전과제 */}
-            <div className="bg-gradient-to-r from-orange-50 to-rose-50 rounded-2xl p-4 border-2 border-orange-200 mb-4">
-             <div className="flex items-center justify-between mb-3">
-  <h3 className="text-sm font-bold text-orange-900 flex items-center gap-2">
-    <Target className="w-5 h-5" />
-    내 도전과제
-  </h3>
-  <div className="flex gap-2">
-    {/* ✅ 추가 버튼 */}
-    <button
-      onClick={() => setShowAddChallengeDialog(true)}
-      className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-all"
-      title="도전과제 추가"
-    >
-      <Plus className="w-4 h-4" />
-    </button>
-    <button
-      onClick={() => setHideCompletedChallenges(!hideCompletedChallenges)}
-      className="text-xs text-orange-600 hover:text-orange-800 font-medium transition-colors px-3 py-2 hover:bg-orange-100 rounded-lg"
-    >
-      {hideCompletedChallenges ? '완료 보기' : '완료 숨기기'}
-    </button>
+{/* 내 도전과제 */}
+<div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl p-6 animate-fade-in">
+  <div className="flex items-center gap-2 mb-4">
+    <Trophy className="w-6 h-6 text-orange-600" />
+    <h2 className="text-xl font-bold text-gray-900">내 진행상황</h2>
   </div>
-</div>
-              
-              <div className="space-y-2">
-                {/* 미완료 과제 */}
-                {currentLevelInfo.requirements.map((req, idx) => {
-                  const matchingChallenge = levelChallenges.find(c => {
-                    const reqLower = req.toLowerCase();
-                    const titleLower = c.title.toLowerCase();
-                    const descLower = c.description.toLowerCase();
-                    
-                    if (titleLower === reqLower || descLower === reqLower) return true;
-                    
-                    const reqWords = reqLower.split(' ').filter(w => w.length > 2);
-                    const matchCount = reqWords.filter(word => titleLower.includes(word) || descLower.includes(word)).length;
-                    
-                    return reqWords.length > 0 && matchCount >= Math.ceil(reqWords.length / 2);
-                  });
-                  
-                  const isCompleted = matchingChallenge?.status === 'completed';
-                  if (isCompleted && hideCompletedChallenges) return null;
-                  
-                  return (
-                    <div
-                      key={`req-${userStats.level}-${idx}`}
-                      className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                        isCompleted 
-                          ? 'hover:bg-green-50 opacity-60' 
-                          : 'hover:bg-orange-100'
-                      }`}
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (matchingChallenge) {
-                            handleToggleChallenge(matchingChallenge.id);
-                          } else {
-                            handleRequiredChallengeStart(req);
-                          }
-                        }}
-                        className="flex-shrink-0 transform transition-transform hover:scale-110"
-                      >
-                        {isCompleted ? (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <Circle className="w-5 h-5 text-orange-500" />
-                        )}
-                      </button>
-                      
-                      <button
-                        onClick={() => {
-                          if (matchingChallenge) {
-                            handleChallengeTextClick(matchingChallenge);
-                          } else {
-                            handleRequiredChallengeStart(req);
-                          }
-                        }}
-                        className={`flex-1 text-left text-sm transition-colors ${
-                          isCompleted 
-                            ? 'text-gray-600 line-through' 
-                            : 'text-gray-800 hover:text-orange-600'
-                        }`}
-                      >
-                        {req}
-                      </button>
-                    </div>
-                  );
-                })}
 
-                {/* 추가 도전과제 */}
-               {/* 추가 도전과제 */}
-{challenges
-  .filter(c => hideCompletedChallenges ? c.status !== 'completed' : true)
-  .map(challenge => (
-    <div
-      key={challenge.id}
-      className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-        challenge.status === 'completed' 
-          ? 'hover:bg-green-50 opacity-60' 
-          : 'hover:bg-orange-100'
-      }`}
-    >
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          handleToggleChallenge(challenge.id);
-        }}
-        className="flex-shrink-0 transform transition-transform hover:scale-110"
-      >
-        {challenge.status === 'completed' ? (
-          <CheckCircle className="w-5 h-5 text-green-600" />
-        ) : (
-          <Circle className="w-5 h-5 text-orange-500" />
-        )}
-      </button>
-      
-      <button
-        onClick={() => handleChallengeTextClick(challenge)}
-        className={`flex-1 text-left text-sm transition-colors ${
-          challenge.status === 'completed' 
-            ? 'text-gray-600 line-through' 
-            : 'text-gray-800 hover:text-orange-600'
-        }`}
-      >
-        {challenge.title}
-      </button>
+  {/* 레벨 카드 */}
+  <button
+    onClick={() => setShowLevelRoadmap(true)}
+    className={`w-full bg-gradient-to-r ${currentLevelInfo.bgColor} rounded-2xl p-6 mb-6 border-2 border-orange-200 shadow-md hover:shadow-lg transition-all transform hover:scale-105`}
+  >
+    {/* ... 레벨 카드 내용 ... */}
+  </button>
 
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          handleDeleteChallenge(challenge);
-        }}
-        className="flex-shrink-0 p-2 hover:bg-red-100 rounded-lg transition-all opacity-70 hover:opacity-100"
-        title="삭제"
-      >
-        <Trash2 className="w-4 h-4 text-red-600" />
-      </button>
-    </div>
-  ))}
-              </div>
-            </div>
-{/* ✅ 레벨 추천 과제 */}
-<div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4 border-2 border-blue-200 mb-4">
-  <h3 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
-    💡 Level {userStats.level} 추천 과제
-  </h3>
-  
-  <div className="space-y-2">
-    {currentLevelInfo.requirements.map((req, idx) => {
-      const alreadyAdded = challenges.some(c => 
-        c.title === req || c.description === req
-      );
-      
-      return (
-        <div
-          key={`rec-${userStats.level}-${idx}`}
-          className="flex items-start gap-3 p-3 rounded-xl hover:bg-blue-100 transition-all"
+  {/* ✅ 이번 레벨 도전과제 */}
+  <div className="bg-gradient-to-r from-orange-50 to-rose-50 rounded-2xl p-4 border-2 border-orange-200 mb-4">
+    <div className="flex items-center justify-between mb-3">
+      <h3 className="text-sm font-bold text-orange-900 flex items-center gap-2">
+        <Target className="w-5 h-5" />
+        내 도전과제
+      </h3>
+      <div className="flex gap-2">
+        <button
+          onClick={() => setShowAddChallengeDialog(true)}
+          className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-all"
+          title="도전과제 추가"
         >
-          <Circle className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-500" />
-          
-          {/* ✅ 수정: 클릭 시 아무 동작 안 함 */}
-          <div className="flex-1 text-sm text-gray-800">
-            {req}
-          </div>
-          
-          {alreadyAdded ? (
-            <span className="text-xs text-green-600 font-medium">✓ 추가됨</span>
-          ) : (
+          <Plus className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => setHideCompletedChallenges(!hideCompletedChallenges)}
+          className="text-xs text-orange-600 hover:text-orange-800 font-medium transition-colors px-3 py-2 hover:bg-orange-100 rounded-lg"
+        >
+          {hideCompletedChallenges ? '완료 보기' : '완료 숨기기'}
+        </button>
+      </div>
+    </div>
+    
+    <div className="space-y-2">
+      {/* ✅ 레벨 필수 과제 (추천 과제 3개) */}
+      {currentLevelInfo.requirements.map((req, idx) => {
+        const matchingChallenge = challenges.find(c => 
+          c.title === req || c.description === req
+        );
+        
+        const isCompleted = matchingChallenge?.status === 'completed';
+        if (isCompleted && hideCompletedChallenges) return null;
+        
+        return (
+          <div
+            key={`req-${userStats.level}-${idx}`}
+            className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
+              isCompleted 
+                ? 'hover:bg-green-50 opacity-60' 
+                : 'hover:bg-orange-100'
+            }`}
+          >
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleAddRecommendedChallenge(req);
+              onClick={() => {
+                if (matchingChallenge) {
+                  handleToggleChallenge(matchingChallenge.id);
+                }
               }}
-              className="flex-shrink-0 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg transition-all font-medium"
+              className="flex-shrink-0 transform transition-transform hover:scale-110"
             >
-              추가
+              {isCompleted ? (
+                <CheckCircle className="w-5 h-5 text-green-600" />
+              ) : (
+                <Circle className="w-5 h-5 text-orange-500" />
+              )}
             </button>
-          )}
-        </div>
-      );
-    })}
+            
+            <button
+              onClick={() => {
+                if (matchingChallenge) {
+                  handleChallengeTextClick(matchingChallenge);
+                }
+              }}
+              className={`flex-1 text-left text-sm transition-colors ${
+                isCompleted 
+                  ? 'text-gray-600 line-through' 
+                  : 'text-gray-800 hover:text-orange-600'
+              }`}
+            >
+              {req}
+            </button>
+
+            {/* ✅ 삭제 버튼 (추가된 경우만) */}
+            {matchingChallenge && (
+              <button
+                onClick={() => handleDeleteChallenge(matchingChallenge)}
+                className="flex-shrink-0 p-2 hover:bg-red-100 rounded-lg transition-all opacity-70 hover:opacity-100"
+                title="삭제"
+              >
+                <Trash2 className="w-4 h-4 text-red-600" />
+              </button>
+            )}
+          </div>
+        );
+      })}
+
+      {/* ✅ 사용자가 직접 추가한 도전과제 */}
+      {challenges
+        .filter(c => {
+          // 현재 레벨만
+          if (c.level !== userStats.level) return false;
+          
+          // 완료 숨기기 필터
+          if (hideCompletedChallenges && c.status === 'completed') return false;
+          
+          // ✅ 레벨 필수 과제(추천 과제 3개)가 아닌 것만
+          const isLevelRequirement = currentLevelInfo.requirements.some(req => 
+            c.title === req || c.description === req
+          );
+          
+          return !isLevelRequirement;
+        })
+        .map(challenge => (
+          <div
+            key={challenge.id}
+            className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
+              challenge.status === 'completed' 
+                ? 'hover:bg-green-50 opacity-60' 
+                : 'hover:bg-orange-100'
+            }`}
+          >
+            <button
+              onClick={() => handleToggleChallenge(challenge.id)}
+              className="flex-shrink-0 transform transition-transform hover:scale-110"
+            >
+              {challenge.status === 'completed' ? (
+                <CheckCircle className="w-5 h-5 text-green-600" />
+              ) : (
+                <Circle className="w-5 h-5 text-orange-500" />
+              )}
+            </button>
+            
+            <button
+              onClick={() => handleChallengeTextClick(challenge)}
+              className={`flex-1 text-left text-sm transition-colors ${
+                challenge.status === 'completed' 
+                  ? 'text-gray-600 line-through' 
+                  : 'text-gray-800 hover:text-orange-600'
+              }`}
+            >
+              {challenge.title}
+            </button>
+
+            <button
+              onClick={() => handleDeleteChallenge(challenge)}
+              className="flex-shrink-0 p-2 hover:bg-red-100 rounded-lg transition-all opacity-70 hover:opacity-100"
+              title="삭제"
+            >
+              <Trash2 className="w-4 h-4 text-red-600" />
+            </button>
+          </div>
+        ))}
+
+      {/* 도전과제 없을 때 */}
+      {challenges.filter(c => c.level === userStats.level).length === 0 && (
+        <p className="text-center text-gray-400 py-8">
+          아직 추가한 도전과제가 없습니다
+        </p>
+      )}
+    </div>
   </div>
-</div>
 
             {/* 통계 */}
             {/* 통계 */}
