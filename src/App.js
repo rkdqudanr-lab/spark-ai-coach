@@ -365,10 +365,10 @@ const handleSaveUserInstructions = async () => {
     
     console.log('✅ 저장 완료!');
     setShowBusinessItemDialog(false);
-    alert('✅ 창업 아이템 정보가 저장되었습니다!');
+    showConfirm('저장 완료', '✅ 창업 아이템 정보가 저장되었습니다!', null);
   } catch (error) {
     console.error('❌ 저장 실패:', error);
-    alert(`❌ 저장에 실패했습니다: ${error.message}`);
+    showConfirm('오류', `❌ 저장에 실패했습니다: ${error.message}`, null);
   }
 };
     // ✅ Step 4: AI가 기억한 프로필 포맷팅
