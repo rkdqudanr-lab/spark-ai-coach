@@ -338,22 +338,39 @@ const handleConfirmStart = async () => {
     loadUserData(user.id);
   };
     // ✅ 사용자 지침 저장
-  const handleSaveUserInstructions = async () => {
-    try {
-      const { error } = await supabase
-        .from('user_profiles')
-        .update({ user_instructions: userInstructions })
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      
-      setShowBusinessItemDialog(false);
-      showConfirm('저장 완료', '✅ 창업 아이템 정보가 저장되었습니다!', null);
-    } catch (error) {
-      console.error('저장 실패:', error);
-      showConfirm('오류', '저장에 실패했습니다.', null);
+const handleSaveUserInstructions = async () => {
+  console.log('💾 저장 시작...');
+  console.log('user.id:', user?.id);
+  console.log('userInstructions:', userInstructions);
+  
+  if (!user?.id) {
+    alert('❌ 사용자 정보가 없습니다. 다시 로그인해주세요.');
+    return;
+  }
+  
+  try {
+    console.log('🔄 Supabase 업데이트 시작...');
+    
+    const { data, error } = await supabase
+      .from('user_profile')  // ✅ 올바른 테이블명 (s 없음!)
+      .update({ user_instructions: userInstructions })
+      .eq('user_id', user.id);
+    
+    console.log('📊 Supabase 응답:', { data, error });
+    
+    if (error) {
+      console.error('❌ Supabase 에러:', error);
+      throw error;
     }
-  };
+    
+    console.log('✅ 저장 완료!');
+    setShowBusinessItemDialog(false);
+    alert('✅ 창업 아이템 정보가 저장되었습니다!');
+  } catch (error) {
+    console.error('❌ 저장 실패:', error);
+    alert(`❌ 저장에 실패했습니다: ${error.message}`);
+  }
+};
     // ✅ Step 4: AI가 기억한 프로필 포맷팅
   const formatProfileForDisplay = () => {
     if (!userProfile || Object.keys(userProfile).length === 0) {
