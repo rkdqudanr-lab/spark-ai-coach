@@ -772,14 +772,82 @@ const handleResetProgress = async () => {
 
 {/* 레벨 카드 - 별도 카드 */}
 <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl p-6 animate-fade-in">
+  {/* ✅ 레벨 카드 내용 */}
   <button
     onClick={() => setShowLevelRoadmap(true)}
     className={`w-full bg-gradient-to-r ${currentLevelInfo.bgColor} rounded-2xl p-6 mb-6 border-2 border-orange-200 shadow-md hover:shadow-lg transition-all transform hover:scale-105`}
   >
-    {/* ... 레벨 카드 내용 ... */}
+    <div className="flex items-center gap-4 mb-4">
+      <div className="text-6xl">{currentLevelInfo.emoji}</div>
+      <div className="flex-1 text-left">
+        <div className="flex items-center justify-between mb-2">
+          <span className={`text-lg font-bold bg-gradient-to-r ${currentLevelInfo.color} bg-clip-text text-transparent`}>
+            Level {userStats.level}
+          </span>
+          {userStats.level < 10 && (
+            <span className="text-sm text-gray-600 font-medium">{nextLevelChallenges}개 남음</span>
+          )}
+        </div>
+        <p className="text-sm font-semibold text-gray-800 mb-1">{currentLevelInfo.title}</p>
+        <p className="text-xs text-gray-600">{currentLevelInfo.description}</p>
+      </div>
+    </div>
+    
+    {userStats.level < 10 && (
+      <div className="w-full bg-white/50 rounded-full h-3 overflow-hidden">
+        <div 
+          className={`bg-gradient-to-r ${currentLevelInfo.color} h-3 rounded-full transition-all duration-500`}
+          style={{ width: `${(userStats.completed / LEVEL_SYSTEM[userStats.level + 1].requiredChallenges) * 100}%` }}
+        />
+      </div>
+    )}
+    
+    <p className="text-xs text-center text-orange-600 font-medium mt-3">클릭하여 전체 로드맵 보기 →</p>
   </button>
 
-  {/* ✅ 이번 레벨 도전과제 */}
+  {/* ✅ Level 추천 과제 (추가 전) */}
+  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4 border-2 border-blue-200 mb-4">
+    <h3 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
+      💡 Level {userStats.level} 추천 과제
+    </h3>
+    
+    <div className="space-y-2">
+      {currentLevelInfo.requirements.map((req, idx) => {
+        const alreadyAdded = challenges.some(c => 
+          c.title === req || c.description === req
+        );
+        
+        return (
+          <div
+            key={`rec-${userStats.level}-${idx}`}
+            className="flex items-start gap-3 p-3 rounded-xl hover:bg-blue-100 transition-all"
+          >
+            <Circle className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-500" />
+            
+            <div className="flex-1 text-sm text-gray-800">
+              {req}
+            </div>
+            
+            {alreadyAdded ? (
+              <span className="text-xs text-green-600 font-medium">✓ 추가됨</span>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddRecommendedChallenge(req);
+                }}
+                className="flex-shrink-0 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg transition-all font-medium"
+              >
+                추가
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  </div>
+
+  {/* ✅ 내 도전과제 (추가된 것만) */}
   <div className="bg-gradient-to-r from-orange-50 to-rose-50 rounded-2xl p-4 border-2 border-orange-200 mb-4">
     <div className="flex items-center justify-between mb-3">
       <h3 className="text-sm font-bold text-orange-900 flex items-center gap-2">
@@ -804,69 +872,7 @@ const handleResetProgress = async () => {
     </div>
     
     <div className="space-y-2">
-      {/* ✅ 레벨 필수 과제 (추천 과제 3개) */}
-      {currentLevelInfo.requirements.map((req, idx) => {
-        const matchingChallenge = challenges.find(c => 
-          c.title === req || c.description === req
-        );
-        
-        const isCompleted = matchingChallenge?.status === 'completed';
-        if (isCompleted && hideCompletedChallenges) return null;
-        
-        return (
-          <div
-            key={`req-${userStats.level}-${idx}`}
-            className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-              isCompleted 
-                ? 'hover:bg-green-50 opacity-60' 
-                : 'hover:bg-orange-100'
-            }`}
-          >
-            <button
-              onClick={() => {
-                if (matchingChallenge) {
-                  handleToggleChallenge(matchingChallenge.id);
-                }
-              }}
-              className="flex-shrink-0 transform transition-transform hover:scale-110"
-            >
-              {isCompleted ? (
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              ) : (
-                <Circle className="w-5 h-5 text-orange-500" />
-              )}
-            </button>
-            
-            <button
-              onClick={() => {
-                if (matchingChallenge) {
-                  handleChallengeTextClick(matchingChallenge);
-                }
-              }}
-              className={`flex-1 text-left text-sm transition-colors ${
-                isCompleted 
-                  ? 'text-gray-600 line-through' 
-                  : 'text-gray-800 hover:text-orange-600'
-              }`}
-            >
-              {req}
-            </button>
-
-            {/* ✅ 삭제 버튼 (추가된 경우만) */}
-            {matchingChallenge && (
-              <button
-                onClick={() => handleDeleteChallenge(matchingChallenge)}
-                className="flex-shrink-0 p-2 hover:bg-red-100 rounded-lg transition-all opacity-70 hover:opacity-100"
-                title="삭제"
-              >
-                <Trash2 className="w-4 h-4 text-red-600" />
-              </button>
-            )}
-          </div>
-        );
-      })}
-
-      {/* ✅ 사용자가 직접 추가한 도전과제 */}
+      {/* ✅ 추가된 도전과제만 표시 */}
       {challenges
         .filter(c => {
           // 현재 레벨만
@@ -875,12 +881,7 @@ const handleResetProgress = async () => {
           // 완료 숨기기 필터
           if (hideCompletedChallenges && c.status === 'completed') return false;
           
-          // ✅ 레벨 필수 과제(추천 과제 3개)가 아닌 것만
-          const isLevelRequirement = currentLevelInfo.requirements.some(req => 
-            c.title === req || c.description === req
-          );
-          
-          return !isLevelRequirement;
+          return true;
         })
         .map(challenge => (
           <div
@@ -932,31 +933,30 @@ const handleResetProgress = async () => {
     </div>
   </div>
 
-            {/* 통계 */}
-            {/* 통계 */}
-            <div className="grid grid-cols-3 gap-3 mb-3">
-              <div className="bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl p-3 text-center border border-orange-300 transform transition-transform hover:scale-105">
-                <div className="text-2xl font-bold text-orange-700">{userStats.total}</div>
-                <div className="text-xs text-orange-700 font-medium">전체</div>
-              </div>
-              <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-xl p-3 text-center border border-green-300 transform transition-transform hover:scale-105">
-                <div className="text-2xl font-bold text-green-700">{userStats.completed}</div>
-                <div className="text-xs text-green-700 font-medium">완료</div>
-              </div>
-              <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl p-3 text-center border border-blue-300 transform transition-transform hover:scale-105">
-                <div className="text-2xl font-bold text-blue-700">{userStats.active}</div>
-                <div className="text-xs text-blue-700 font-medium">진행중</div>
-              </div>
-            </div>
+  {/* 통계 */}
+  <div className="grid grid-cols-3 gap-3 mb-3">
+    <div className="bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl p-3 text-center border border-orange-300 transform transition-transform hover:scale-105">
+      <div className="text-2xl font-bold text-orange-700">{userStats.total}</div>
+      <div className="text-xs text-orange-700 font-medium">전체</div>
+    </div>
+    <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-xl p-3 text-center border border-green-300 transform transition-transform hover:scale-105">
+      <div className="text-2xl font-bold text-green-700">{userStats.completed}</div>
+      <div className="text-xs text-green-700 font-medium">완료</div>
+    </div>
+    <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl p-3 text-center border border-blue-300 transform transition-transform hover:scale-105">
+      <div className="text-2xl font-bold text-blue-700">{userStats.active}</div>
+      <div className="text-xs text-blue-700 font-medium">진행중</div>
+    </div>
+  </div>
 
-            {/* 초기화 버튼 */}
-            <button
-              onClick={handleResetProgress}
-              className="w-full px-3 py-2 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 rounded-xl text-xs font-medium transition-all border border-gray-300 hover:border-red-300"
-            >
-              🔄 진행상황 초기화
-            </button>
-          </div>
+  {/* 초기화 버튼 */}
+  <button
+    onClick={handleResetProgress}
+    className="w-full px-3 py-2 bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 rounded-xl text-xs font-medium transition-all border border-gray-300 hover:border-red-300"
+  >
+    🔄 진행상황 초기화
+  </button>
+</div>
 
           {/* 최근 대화 */}
           {conversations.length > 0 && (
