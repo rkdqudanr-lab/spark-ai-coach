@@ -445,18 +445,33 @@ const handleConfirmStart = async () => {
       const recentMessages = newMessages.slice(-MAX_CONTEXT_MESSAGES);
       const profileText = profileHelpers.profileToText(userProfile);
       
-      const messagesToSend = profileText 
-        ? [
-            { role: 'user', content: profileText },
-            ...recentMessages.map(m => ({
-              role: m.role,
-              content: m.content
-            }))
-          ]
-        : recentMessages.map(m => ({
+     // ✅ 수정: profileText + userInstructions 합치기
+    let systemContext = '';
+    
+    if (profileText) {
+      systemContext += profileText;
+    }
+    
+    if (userInstructions && userInstructions.trim()) {
+      if (systemContext) {
+        systemContext += '\n\n[사용자 지침]\n' + userInstructions.trim();
+      } else {
+        systemContext = '[사용자 지침]\n' + userInstructions.trim();
+      }
+    }
+    
+    const messagesToSend = systemContext 
+      ? [
+          { role: 'user', content: systemContext },
+          ...recentMessages.map(m => ({
             role: m.role,
             content: m.content
-          }));
+          }))
+        ]
+      : recentMessages.map(m => ({
+          role: m.role,
+          content: m.content
+        }));
       
       const response = await fetch('/api/chat', {
         method: 'POST',
