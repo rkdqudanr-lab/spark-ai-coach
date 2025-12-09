@@ -1197,7 +1197,98 @@ const handleResetProgress = async () => {
               </div>
             </div>
           )}
-        </div>
+     {/* ✅ 확인 다이얼로그 */}
+          {showConfirmDialog && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 animate-fade-in">
+              <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-scale-in">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">{confirmDialogData.title}</h3>
+                <p className="text-sm text-gray-700 mb-6 whitespace-pre-wrap">{confirmDialogData.message}</p>
+                <div className="flex gap-3">
+                  {confirmDialogData.onConfirm ? (
+                    <>
+                      <button
+                        onClick={() => setShowConfirmDialog(false)}
+                        className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all"
+                      >
+                        취소
+                      </button>
+                      <button
+                        onClick={() => {
+                          confirmDialogData.onConfirm();
+                          setShowConfirmDialog(false);
+                        }}
+                        className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105"
+                      >
+                        확인
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setShowConfirmDialog(false)}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105"
+                    >
+                      확인
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ✅ 삭제 확인 다이얼로그 */}
+          {showDeleteDialog && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 animate-fade-in">
+              <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-scale-in">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">⚠️ 도전과제 삭제</h3>
+                <p className="text-sm text-gray-700 mb-6">
+                  "{challengeToDelete?.title}"을(를) 삭제하시겠습니까?<br/>
+                  이 작업은 되돌릴 수 없습니다.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDeleteDialog(false)}
+                    className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={confirmDeleteChallenge}
+                    className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-all"
+                  >
+                    삭제
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ✅ 대화 시작 다이얼로그 */}
+          {showStartDialog && selectedChallenge && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 animate-fade-in">
+              <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-scale-in">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">💬 대화 시작</h3>
+                <p className="text-sm text-gray-700 mb-6">
+                  "{selectedChallenge.title}"<br/>
+                  이 도전과제에 대해 대화를 시작하시겠습니까?
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowStartDialog(false)}
+                    className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handleConfirmStart}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105"
+                  >
+                    시작하기
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+            </div>
       </div>
     );
   }
