@@ -944,13 +944,10 @@ const handleConfirmStart = async () => {
         >
           <Circle className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-500" />
           
-          {/* ✅ 수정됨: 클릭 시 대화 시작 다이얼로그 */}
-          <button
-            onClick={() => handleRecommendedChallengeClick(req)}
-            className="flex-1 text-left text-sm text-gray-800 hover:text-blue-600 transition-colors"
-          >
+          {/* ✅ 수정: 클릭 시 아무 동작 안 함 */}
+          <div className="flex-1 text-sm text-gray-800">
             {req}
-          </button>
+          </div>
           
           {alreadyAdded ? (
             <span className="text-xs text-green-600 font-medium">✓ 추가됨</span>
