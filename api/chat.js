@@ -471,7 +471,8 @@ Level 10 (최종 목표 - 35개 완료):
     res.status(200).json({
       success: true,
       message: finalText.trim(),
-      suggested_challenge: suggestedChallenge
+      suggested_challenge: suggestedChallenge,
+      challenge_added: suggestedChallenge ? true : false  // ← 추가!
     });
 
   } catch (error) {
