@@ -69,8 +69,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { messages, token: userId } = req.body;
-
+const { messages, token: userId, conversation_id, user_level } = req.body;
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'messages 배열이 필요합니다' });
     }
@@ -99,6 +98,31 @@ export default async function handler(req, res) {
 - 매주 작은 성공 경험 쌓기
 
 ---
+## suggest_challenge - 매우 중요! 자동 감지!
+
+✅ **다음과 같은 경우 즉시 suggest_challenge 실행:**
+
+1. **명시적 요청:**
+   - "도전과제에 넣어줘"
+   - "저장해줘"
+   - "과제로 만들어줘"
+
+2. **암묵적 의도 (매우 중요!):**
+   - "~해야겠다"
+   - "~하기로 했어"
+   - "~할 계획이야"
+   - "~할게"
+   - "~해볼게"
+
+3. **목표 설정:**
+   - 구체적인 TO-DO 언급
+
+**실행 예시:**
+
+사용자: "이번 주에 블로그 3개 써볼게"
+→ **즉시** suggest_challenge 호출!
+
+**중요:** 창업 관련 실행 가능한 것만, 제목 15자 이내!
 
 # 대화 스타일
 
@@ -368,9 +392,30 @@ Level 10 (최종 목표 - 35개 완료):
         if (block.name === 'update_user_profile' && userId) {
           await updateUserProfile(userId, block.input);
           profileUpdated = true;
-        } else if (block.name === 'suggest_challenge') {
-          suggestedChallenge = block.input;
-          console.log('✅ 도전과제 제안:', suggestedChallenge);
+} else if (block.name === 'suggest_challenge' && userId) {
+          try {
+            const { data: newChallenge, error } = await supabase
+              .from('challenges')
+              .insert([{
+                user_id: userId,
+                conversation_id: conversation_id,
+                title: block.input.title,
+                description: block.input.description || block.input.title,
+                level: user_level || 1,
+                status: 'active',
+                created_at: new Date().toISOString()
+              }])
+              .select()
+              .single();
+            
+            if (error) throw error;
+            
+            suggestedChallenge = newChallenge;
+            console.log('✅ 도전과제 자동 추가됨:', newChallenge);
+          } catch (error) {
+            console.error('❌ 도전과제 추가 실패:', error);
+            suggestedChallenge = block.input;
+          }
         }
       }
     }
