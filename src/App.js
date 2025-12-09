@@ -490,12 +490,14 @@ const handleSaveUserInstructions = async () => {
           content: m.content
         }));
       
-      const response = await fetch('/api/chat', {
+const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           messages: messagesToSend,
-          token: user.id 
+          token: user.id,
+          conversation_id: currentConversationId,
+          user_level: userStats.level
         })
       });
 
@@ -507,11 +509,19 @@ const handleSaveUserInstructions = async () => {
       await conversationHelpers.addMessage(currentConversationId, 'assistant', assistantMessage);
       setMessages([...newMessages, { role: 'assistant', content: assistantMessage }]);
 
-      const updatedProfile = await profileHelpers.getProfile(user.id);
+ const updatedProfile = await profileHelpers.getProfile(user.id);
       setUserProfile(updatedProfile.profile_data || {});
 
       if (data.suggested_challenge) {
-        setSuggestedChallenge(data.suggested_challenge);
+        // 목록 새로고침
+        const updatedChallenges = await challengeHelpers.getChallenges(user.id);
+        setChallenges(updatedChallenges);
+        
+        const stats = await challengeHelpers.getUserStats(user.id);
+        setUserStats({ ...stats, level: calculateLevel(stats.completed) });
+        
+        // 알림 (선택사항)
+        console.log('✅ 새 도전과제 추가:', data.suggested_challenge.title);
       }
 
       // ✅ 도전과제 완료 체크 (커스텀 다이얼로그)
