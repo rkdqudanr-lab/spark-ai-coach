@@ -249,18 +249,36 @@ function App() {
     setShowStartDialog(true);
   };
 
-  const handleConfirmStart = async () => {
+const handleConfirmStart = async () => {
     if (!selectedChallenge) return;
     
-    setActiveChallengeId(selectedChallenge.id);
+    let actualChallenge = selectedChallenge;
+    
+    // ✅ 임시 challenge인 경우 → 실제로 생성
+    if (selectedChallenge.isTemp) {
+      actualChallenge = await challengeHelpers.createChallenge(user.id, null, {
+        title: selectedChallenge.title,
+        description: selectedChallenge.description,
+        level: userStats.level
+      });
+      
+      setChallenges(prev => [actualChallenge, ...prev]);
+      const stats = await challengeHelpers.getUserStats(user.id);
+      setUserStats({ ...stats, level: calculateLevel(stats.completed) });
+    }
+    
+    setActiveChallengeId(actualChallenge.id);
     setViewMode('chat');
     setShowStartDialog(false);
     
-    const conv = await conversationHelpers.createConversation(user.id, `[도전과제] ${selectedChallenge.title}`);
+    const conv = await conversationHelpers.createConversation(
+      user.id, 
+      `[도전과제] ${actualChallenge.title}`
+    );
     setCurrentConversationId(conv.id);
     setConversations([conv, ...conversations]);
     
-    const welcomeMessage = `좋아! "${selectedChallenge.title}" 같이 시작해보자! 💪\n\n어디까지 진행했어? 막히는 부분 있어?`;
+    const welcomeMessage = `좋아! "${actualChallenge.title}" 같이 시작해보자! 💪\n\n어디까지 진행했어? 막히는 부분 있어?`;
     await conversationHelpers.addMessage(conv.id, 'assistant', welcomeMessage);
     setMessages([{ role: 'assistant', content: welcomeMessage }]);
   };
@@ -315,6 +333,25 @@ function App() {
     setActiveChallengeId(null);
     setMessages([]);
     loadUserData(user.id);
+  };
+  const handleRecommendedChallengeClick = async (requirementText) => {
+    const existingChallenge = challenges.find(c => 
+      c.title === requirementText || c.description === requirementText
+    );
+    
+    if (existingChallenge) {
+      handleChallengeTextClick(existingChallenge);
+    } else {
+      const tempChallenge = {
+        title: requirementText,
+        description: requirementText,
+        level: userStats.level,
+        isTemp: true
+      };
+      
+      setSelectedChallenge(tempChallenge);
+      setShowStartDialog(true);
+    }
   };
   const handleRequiredChallengeStart = async (requirementText) => {
     // 해당 requirement에 맞는 challenge 생성
@@ -799,46 +836,50 @@ function App() {
               </div>
             </div>
 {/* ✅ 레벨 추천 과제 */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4 border-2 border-blue-200 mb-4">
-              <h3 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
-                💡 Level {userStats.level} 추천 과제
-              </h3>
-              
-              <div className="space-y-2">
-                {currentLevelInfo.requirements.map((req, idx) => {
-                  const alreadyAdded = challenges.some(c => 
-                    c.title === req || c.description === req
-                  );
-                  
-                  return (
-                    <div
-                      key={`rec-${userStats.level}-${idx}`}
-                      className="flex items-start gap-3 p-3 rounded-xl hover:bg-blue-100 transition-all"
-                    >
-                      <Circle className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-500" />
-                      <button
-                        onClick={() => !alreadyAdded && handleAddRecommendedChallenge(req)}
-                        className="flex-1 text-left text-sm text-gray-800 hover:text-blue-600 transition-colors"
-                        disabled={alreadyAdded}
-                      >
-                        {req}
-                      </button>
-                      
-                      {alreadyAdded ? (
-                        <span className="text-xs text-green-600 font-medium">✓ 추가됨</span>
-                      ) : (
-                        <button
-                          onClick={() => handleAddRecommendedChallenge(req)}
-                          className="flex-shrink-0 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg transition-all font-medium"
-                        >
-                          추가
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+<div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4 border-2 border-blue-200 mb-4">
+  <h3 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
+    💡 Level {userStats.level} 추천 과제
+  </h3>
+  
+  <div className="space-y-2">
+    {currentLevelInfo.requirements.map((req, idx) => {
+      const alreadyAdded = challenges.some(c => 
+        c.title === req || c.description === req
+      );
+      
+      return (
+        <div
+          key={`rec-${userStats.level}-${idx}`}
+          className="flex items-start gap-3 p-3 rounded-xl hover:bg-blue-100 transition-all"
+        >
+          <Circle className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-500" />
+          
+          {/* ✅ 수정됨: 클릭 시 대화 시작 다이얼로그 */}
+          <button
+            onClick={() => handleRecommendedChallengeClick(req)}
+            className="flex-1 text-left text-sm text-gray-800 hover:text-blue-600 transition-colors"
+          >
+            {req}
+          </button>
+          
+          {alreadyAdded ? (
+            <span className="text-xs text-green-600 font-medium">✓ 추가됨</span>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddRecommendedChallenge(req);
+              }}
+              className="flex-shrink-0 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg transition-all font-medium"
+            >
+              추가
+            </button>
+          )}
+        </div>
+      );
+    })}
+  </div>
+</div>
 
             {/* 통계 */}
             {/* 통계 */}
