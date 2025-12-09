@@ -140,6 +140,8 @@ function App() {
   const [confirmDialogData, setConfirmDialogData] = useState({ title: '', message: '', onConfirm: null });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [challengeToDelete, setChallengeToDelete] = useState(null);
+  const [showBusinessItemDialog, setShowBusinessItemDialog] = useState(false);
+  const [userInstructions, setUserInstructions] = useState('');
 
   // 데이터
   const [conversations, setConversations] = useState([]);
@@ -190,6 +192,7 @@ function App() {
       setConversations(convs);
       setChallenges(challs);
       setUserProfile(profile.profile_data || {});
+      setUserInstructions(profile.user_instructions || '');
       
       const stats = await challengeHelpers.getUserStats(userId);
       setUserStats({ ...stats, level: calculateLevel(stats.completed) });
@@ -334,6 +337,66 @@ const handleConfirmStart = async () => {
     setMessages([]);
     loadUserData(user.id);
   };
+    // ✅ 사용자 지침 저장
+  const handleSaveUserInstructions = async () => {
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ user_instructions: userInstructions })
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
+      setShowBusinessItemDialog(false);
+      showConfirm('저장 완료', '✅ 창업 아이템 정보가 저장되었습니다!', null);
+    } catch (error) {
+      console.error('저장 실패:', error);
+      showConfirm('오류', '저장에 실패했습니다.', null);
+    }
+  };
+    // ✅ Step 4: AI가 기억한 프로필 포맷팅
+  const formatProfileForDisplay = () => {
+    if (!userProfile || Object.keys(userProfile).length === 0) {
+      return "아직 학습된 정보가 없습니다. 대화를 통해 SPARK가 당신을 알아가고 있어요!";
+    }
+    
+    const items = [];
+    
+    if (userProfile['창업 아이템']) {
+      items.push(`창업 아이템: ${userProfile['창업 아이템']}`);
+    }
+    
+    if (userProfile['목표 시장']) {
+      items.push(`목표 시장: ${userProfile['목표 시장']}`);
+    }
+    
+    if (userProfile['경험']) {
+      items.push(`경험: ${userProfile['경험']}`);
+    }
+    
+    // 완료된 도전과제
+    const completedChallenges = challenges
+      .filter(c => c.status === 'completed')
+      .map(c => c.title);
+    
+    const activeChallenges = challenges
+      .filter(c => c.status === 'active')
+      .map(c => c.title);
+    
+    if (completedChallenges.length > 0 || activeChallenges.length > 0) {
+      let challengeText = '특징(도전과제):\n';
+      if (completedChallenges.length > 0) {
+        challengeText += `  완료: ${completedChallenges.join(', ')}\n`;
+      }
+      if (activeChallenges.length > 0) {
+        challengeText += `  진행중: ${activeChallenges.join(', ')}`;
+      }
+      items.push(challengeText);
+    }
+    
+    return items.length > 0 ? items.join('\n\n') : "아직 학습된 정보가 없습니다.";
+  };
+
   const handleRecommendedChallengeClick = async (requirementText) => {
     const existingChallenge = challenges.find(c => 
       c.title === requirementText || c.description === requirementText
@@ -638,9 +701,21 @@ const handleConfirmStart = async () => {
               </button>
             </div>
 
-            <div className="bg-gradient-to-br from-orange-100 via-rose-100 to-pink-100 rounded-2xl p-4">
-              <p className="font-bold text-gray-900">{user.name}</p>
-              <p className="text-sm text-gray-600">@{user.username}</p>
+<div className="bg-gradient-to-br from-orange-100 via-rose-100 to-pink-100 rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-gray-900">{user.name}</p>
+                  <p className="text-sm text-gray-600">@{user.username}</p>
+                </div>
+                
+                {/* ✅ 새로 추가: 내 창업 아이템은? 버튼 */}
+                <button
+                  onClick={() => setShowBusinessItemDialog(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg transition-all transform hover:scale-105"
+                >
+                  💡 내 창업 아이템은?
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1016,62 +1091,61 @@ const handleConfirmStart = async () => {
             </div>
           )}
 
-          {/* 커스텀 확인 다이얼로그 */}
-          {showConfirmDialog && (
+{/* ✅ 창업 아이템 다이얼로그 */}
+          {showBusinessItemDialog && (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 animate-fade-in">
-              <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-scale-in">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">{confirmDialogData.title}</h3>
-                <p className="text-gray-700 mb-6 whitespace-pre-line">{confirmDialogData.message}</p>
-                <div className="flex gap-3">
+              <div className="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-scale-in">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    SPARK가 기억하는 '{user.name}님의 창업아이템'
+                  </h3>
                   <button
-                    onClick={() => setShowConfirmDialog(false)}
-                    className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all"
+                    onClick={() => setShowBusinessItemDialog(false)}
+                    className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
                   >
-                    취소
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (confirmDialogData.onConfirm) {
-                        confirmDialogData.onConfirm();
-                      }
-                      setShowConfirmDialog(false);
-                    }}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105"
-                  >
-                    확인
+                    <X className="w-6 h-6" />
                   </button>
                 </div>
+
+                {/* AI가 기억한 내용 */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-bold text-orange-900 mb-3 flex items-center gap-2">
+                    🤖 AI가 기억한 내용
+                  </h4>
+                  <div className="bg-orange-50 rounded-xl p-4 border-2 border-orange-200">
+                    <pre className="text-sm text-gray-800 whitespace-pre-wrap font-sans">
+                      {formatProfileForDisplay()}
+                    </pre>
+                  </div>
+                </div>
+
+                {/* 사용자 직접 작성 지침 */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
+                    ✍️ 내가 직접 작성하는 지침
+                  </h4>
+                  <textarea
+                    value={userInstructions}
+                    onChange={(e) => setUserInstructions(e.target.value)}
+                    placeholder="예: 저는 원주에서 사업합니다. 의료기기 산업에 관심 있어요. 기술적인 설명보다 실전 경험 위주로 조언해주세요."
+                    className="w-full h-32 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    💡 SPARK가 모든 대화에서 이 내용을 참고합니다
+                  </p>
+                </div>
+
+                {/* 저장 버튼 */}
+                <button
+                  onClick={handleSaveUserInstructions}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105"
+                >
+                  💾 저장
+                </button>
               </div>
             </div>
           )}
 
-          {/* 삭제 확인 다이얼로그 */}
-          {showDeleteDialog && challengeToDelete && (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 animate-fade-in">
-              <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-scale-in">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">도전과제 삭제</h3>
-                <p className="text-gray-700 mb-4">"{challengeToDelete.title}"</p>
-                <p className="text-sm text-gray-600 mb-6">정말 삭제하시겠습니까?</p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      setShowDeleteDialog(false);
-                      setChallengeToDelete(null);
-                    }}
-                    className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all"
-                  >
-                    취소
-                  </button>
-                  <button
-                    onClick={confirmDeleteChallenge}
-                    className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold transition-all transform hover:scale-105"
-                  >
-                    삭제
-                  </button>
-                </div>
-              </div>
-            </div>
- )}
           {/* 레벨 로드맵 */}
           {showLevelRoadmap && (
             <div 
