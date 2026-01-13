@@ -1,6 +1,6 @@
 // src/App.js - 완전 최적화 버전
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles, CheckCircle, Circle, Trophy, LogOut, Target, ArrowLeft, X, Plus, Trash2 } from 'lucide-react';
+import { Send, Heart, MapPin, CheckCircle, Circle, Trophy, LogOut, Target, ArrowLeft, X, Plus, Trash2 } from 'lucide-react';
 import { 
   authHelpers, 
   conversationHelpers, 
@@ -31,7 +31,7 @@ class ErrorBoundary extends React.Component {
       return (
         <div style={{ 
           minHeight: '100vh', 
-          background: 'linear-gradient(to bottom right, #fed7aa, #fecaca, #fbcfe8)',
+          background: 'linear-gradient(to bottom right, #dbeafe, #c7d2fe, #ddd6fe)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -518,82 +518,7 @@ const handleConfirmStart = async () => {
     setMessages([]);
     loadUserData(user.id);
   };
-    // ✅ 사용자 지침 저장
-const handleSaveUserInstructions = async () => {
-  console.log('💾 저장 시작...');
-  console.log('user.id:', user?.id);
-  console.log('userInstructions:', userInstructions);
-  
-  if (!user?.id) {
-    alert('❌ 사용자 정보가 없습니다. 다시 로그인해주세요.');
-    return;
-  }
-  
-  try {
-    console.log('🔄 Supabase 업데이트 시작...');
-    
-    const { data, error } = await supabase
-      .from('user_profile')  // ✅ 올바른 테이블명 (s 없음!)
-      .update({ user_instructions: userInstructions })
-      .eq('user_id', user.id);
-    
-    console.log('📊 Supabase 응답:', { data, error });
-    
-    if (error) {
-      console.error('❌ Supabase 에러:', error);
-      throw error;
-    }
-    
-   setShowBusinessItemDialog(false);
-    alert('✅ 창업 아이템 정보가 저장되었습니다!');
-  } 
-  catch (error) {
-    console.error('❌ 저장 실패:', error);
-    alert(`❌ 저장에 실패했습니다: ${error.message}`);
-  }
-};
-    // ✅ Step 4: AI가 기억한 프로필 포맷팅
-  const formatProfileForDisplay = () => {
-    if (!userProfile || Object.keys(userProfile).length === 0) {
-      return "아직 학습된 정보가 없습니다. 대화를 통해 SPARK가 당신을 알아가고 있어요!";
-    }
-    
-    const items = [];
-    
-    if (userProfile['창업 아이템']) {
-      items.push(`창업 아이템: ${userProfile['창업 아이템']}`);
-    }
-    
-    if (userProfile['목표 시장']) {
-      items.push(`목표 시장: ${userProfile['목표 시장']}`);
-    }
-    
-    if (userProfile['경험']) {
-      items.push(`경험: ${userProfile['경험']}`);
-    }
-    
-    // 완료된 도전과제
-    const completedChallenges = challenges
-      .filter(c => c.status === 'completed')
-      .map(c => c.title);
-    
-    const activeChallenges = challenges
-      .filter(c => c.status === 'active')
-      .map(c => c.title);
-    
-    if (completedChallenges.length > 0 || activeChallenges.length > 0) {
-      let challengeText = '특징(도전과제):\n';
-      if (completedChallenges.length > 0) {
-        challengeText += `  완료: ${completedChallenges.join(', ')}\n`;
-      }
-      if (activeChallenges.length > 0) {
-        challengeText += `  진행중: ${activeChallenges.join(', ')}`;
-      }
-      items.push(challengeText);
-    }
-    
-    return items.length > 0 ? items.join('\n\n') : "아직 학습된 정보가 없습니다.";
-  };
+
 
   const handleRecommendedChallengeClick = async (requirementText) => {
     const existingChallenge = challenges.find(c => 
@@ -805,21 +730,6 @@ const handleResetProgress = async () => {
     setViewMode('chat');
     setActiveChallengeId(null);
   };
-
-
-  // 로그인 화면
-  if (isInitialLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-400 via-rose-400 to-pink-500 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl mb-4 shadow-lg animate-bounce">
-            <Sparkles className="w-10 h-10 text-orange-500" />
-          </div>
-          <p className="text-white font-bold text-xl">SPARK 로딩 중...</p>
-        </div>
-      </div>
-    );
-  }
 
   // 로그인 화면
   if (isInitialLoading) {
