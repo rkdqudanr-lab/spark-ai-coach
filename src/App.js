@@ -1,5 +1,6 @@
-// src/App.js - 하트뷰 최종 버전
+// src/App.js - 카카오 로그인 포함 버전
 import React, { useState, useEffect, useRef } from 'react';
+import { Routes, Route, useNavigate, useSearchParams } from 'react-router-dom';
 import { Send, Heart, MapPin, CheckCircle, Circle, Trophy, LogOut, Target, ArrowLeft, X, Plus, Trash2 } from 'lucide-react';
 import { 
   authHelpers, 
@@ -79,6 +80,59 @@ class ErrorBoundary extends React.Component {
 
     return this.props.children;
   }
+}
+
+// 카카오 로그인 콜백 컴포넌트
+function KakaoCallback() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const handleKakaoCallback = async () => {
+      const code = searchParams.get('code');
+      
+      if (!code) {
+        alert('로그인에 실패했습니다.');
+        navigate('/');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/kakao-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          // 로그인 성공 - 페이지 새로고침으로 App 재로드
+          window.location.href = '/';
+        } else {
+          alert('로그인에 실패했습니다: ' + data.error);
+          navigate('/');
+        }
+      } catch (error) {
+        console.error('카카오 로그인 실패:', error);
+        alert('로그인에 실패했습니다.');
+        navigate('/');
+      }
+    };
+
+    handleKakaoCallback();
+  }, [searchParams, navigate]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-400 via-indigo-400 to-purple-500 flex items-center justify-center">
+      <div className="text-center">
+        <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl mb-4 shadow-lg animate-bounce">
+          <Heart className="w-10 h-10 text-blue-500" />
+        </div>
+        <p className="text-white font-bold text-xl">로그인 중...</p>
+      </div>
+    </div>
+  );
 }
 
 // 하트뷰 레벨 시스템
@@ -234,7 +288,7 @@ function getChallengesUntilNextLevel(currentLevel, completedCount) {
   return LEVEL_SYSTEM[currentLevel + 1].requiredChallenges - completedCount;
 }
 
-function App() {
+function MainApp() {
   // 인증
   const [user, setUser] = useState(null);
   const [isLogin, setIsLogin] = useState(true);
@@ -324,6 +378,16 @@ function App() {
   const showConfirm = (title, message, onConfirm) => {
     setConfirmDialogData({ title, message, onConfirm });
     setShowConfirmDialog(true);
+  };
+
+  // ✅ 카카오 로그인 핸들러
+  const handleKakaoLogin = () => {
+    const KAKAO_REST_API_KEY = process.env.REACT_APP_KAKAO_REST_API_KEY;
+    const REDIRECT_URI = process.env.REACT_APP_KAKAO_REDIRECT_URI;
+    
+    const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_REST_API_KEY}&redirect_uri=${REDIRECT_URI}&response_type=code`;
+    
+    window.location.href = kakaoAuthUrl;
   };
 
   const handleSaveUserInstructions = async () => {
@@ -775,6 +839,29 @@ function App() {
               {isLogin ? '로그인' : '회원가입'}
             </button>
           </form>
+
+          {/* ✅ 카카오 로그인 버튼 추가 */}
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">또는</span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleKakaoLogin}
+              type="button"
+              className="mt-6 w-full py-3 bg-[#FEE500] text-[#000000] rounded-xl font-bold hover:bg-[#FDD835] hover:shadow-xl transition-all transform hover:scale-105 flex items-center justify-center gap-3"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 3C6.48 3 2 6.58 2 11c0 2.91 1.88 5.45 4.68 6.93-.2.73-.64 2.54-.73 2.94-.11.48.17.47.36.34.14-.09 2.17-1.45 3.06-2.05.52.07 1.06.11 1.63.11 5.52 0 10-3.58 10-8S17.52 3 12 3z"/>
+              </svg>
+              카카오로 3초만에 시작하기
+            </button>
+          </div>
 
           <div className="mt-6 text-center">
             <button
