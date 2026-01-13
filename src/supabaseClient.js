@@ -1,4 +1,4 @@
-// src/supabaseClient.js - Supabase Auth 버전 (이메일 수정)
+// src/supabaseClient.js - 하트뷰 버전
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -16,7 +16,7 @@ export const authHelpers = {
     try {
       // 1. Supabase Auth로 회원가입
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: `${username}@sparkapp.com`, // ✅ 수정: .local → .com
+        email: `${username}@heartview.com`, // ✅ 변경
         password: password,
         options: {
           data: {
@@ -68,7 +68,7 @@ export const authHelpers = {
     try {
       // 1. Supabase Auth로 로그인
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: `${username}@sparkapp.com`, // ✅ 수정: .local → .com
+        email: `${username}@heartview.com`, // ✅ 변경
         password: password
       });
 
@@ -375,10 +375,8 @@ export const challengeHelpers = {
   }
 };
 
-// supabaseClient.js - 프로필 헬퍼 추가
-
 // ========================================
-// 프로필 헬퍼 (사용자 학습 정보)
+// 프로필 헬퍼 (사용자 학습 정보) - 하트뷰 버전
 // ========================================
 export const profileHelpers = {
   // 프로필 가져오기
@@ -461,7 +459,7 @@ export const profileHelpers = {
     }
   },
 
-  // 프로필을 텍스트로 변환 (Claude에게 전달용)
+  // ✅ 프로필을 텍스트로 변환 (Claude에게 전달용) - 하트뷰 버전
   profileToText: (profileData) => {
     if (!profileData || Object.keys(profileData).length === 0) {
       return '';
@@ -469,28 +467,31 @@ export const profileHelpers = {
 
     let text = '# 사용자 정보\n\n';
 
-    if (profileData.startup_idea) {
-      text += `창업 아이템: ${profileData.startup_idea}\n`;
+    // ✅ 하트뷰 필드
+    if (profileData['희망 직무']) {
+      text += `희망 직무: ${profileData['희망 직무']}\n`;
     }
-    if (profileData.target) {
-      text += `목표: ${profileData.target}\n`;
+    if (profileData['거주 지역']) {
+      text += `거주 지역: ${profileData['거주 지역']}\n`;
     }
-    if (profileData.progress) {
-      text += `진행상황:\n`;
-      Object.entries(profileData.progress).forEach(([key, val]) => {
-        text += `- ${key}: ${val}\n`;
-      });
+    if (profileData['현재 상태']) {
+      text += `현재 상태: ${profileData['현재 상태']}\n`;
     }
-    if (profileData.strengths && profileData.strengths.length > 0) {
-      text += `강점: ${profileData.strengths.join(', ')}\n`;
+    if (profileData['심리 상태']) {
+      text += `심리 상태: ${profileData['심리 상태']}\n`;
     }
-    if (profileData.challenges && profileData.challenges.length > 0) {
-      text += `고민/과제: ${profileData.challenges.join(', ')}\n`;
+    if (profileData['근무 조건']) {
+      text += `근무 조건: ${profileData['근무 조건']}\n`;
+    }
+    if (profileData['관심 분야']) {
+      text += `관심 분야: ${profileData['관심 분야']}\n`;
+    }
+    if (profileData['어려운 점']) {
+      text += `어려운 점: ${profileData['어려운 점']}\n`;
     }
 
     return text;
   }
 };
 
-// supabaseClient.js 맨 아래에 추가:
 export default supabase;
