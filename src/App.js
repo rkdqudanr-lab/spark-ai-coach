@@ -19,6 +19,8 @@ class ErrorBoundary extends React.Component {
     this.state = { hasError: false, error: null };
   }
 
+  
+
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
@@ -122,6 +124,7 @@ function KakaoCallback() {
 
     handleKakaoCallback();
   }, [searchParams, navigate]);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-400 via-indigo-400 to-purple-500 flex items-center justify-center">
@@ -1624,12 +1627,19 @@ function MainApp() {
   );
 }
 
-function AppWithErrorBoundary() {
+function App() {
   return (
     <ErrorBoundary>
-      <App />
+      <Routes>
+        <Route path="/" element={<MainApp />} />
+        <Route path="/auth/callback" element={<KakaoCallback />} />
+      </Routes>
     </ErrorBoundary>
   );
+}
+
+function AppWithErrorBoundary() {
+  return <App />;
 }
 
 export default AppWithErrorBoundary;
