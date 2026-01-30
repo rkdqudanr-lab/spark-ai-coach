@@ -1,140 +1,166 @@
-// src/supabaseClient.js - 하트뷰 버전
-
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+const supabaseUrl = 'https://jpwydqfkvhglwmlkesla.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwd3lkcWZrdmhnbHdtbGtlc2xhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0NDczNTcsImV4cCI6MjA1MzAyMzM1N30.ELjqUWXqWn59zYcB8kHQMw_JxC1S4dKyWxT9VCU5lEQ';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// ✅ Supabase 클라이언트 생성 (OAuth 지원 옵션 추가)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true, // OAuth 콜백 URL 자동 감지
+    flowType: 'pkce', // PKCE 플로우 사용 (보안 강화)
+  }
+});
 
-// ========================================
-// 인증 헬퍼 (Supabase Auth 사용)
-// ========================================
+// 인증 헬퍼
 export const authHelpers = {
-  // 회원가입
-  signUp: async (username, password, name) => {
+  async getCurrentUser() {
     try {
-      // 1. Supabase Auth로 회원가입
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      
+      if (!session?.user) return null;
+
+      // user_profile에서 사용자 정보 가져오기
+      const { data: profile } = await supabase
+        .from('user_profile')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .single();
+
+      return {
+        id: session.user.id,
+        username: profile?.username || session.user.email?.split('@')[0] || 'user',
+        name: profile?.name || session.user.user_metadata?.full_name || '사용자',
+        email: session.user.email,
+      };
+    } catch (error) {
+      console.error('사용자 정보 조회 실패:', error);
+      return null;
+    }
+  },
+
+  async signIn(username, password) {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: `${username}@heartview.local`,
+        password: password,
+      });
+
+      if (error) throw error;
+
+      const user = await this.getCurrentUser();
+      return { success: true, user };
+    } catch (error) {
+      console.error('로그인 실패:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async signUp(username, password, name) {
+    try {
+      const email = `${username}@heartview.local`;
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: `${username}@heartview.com`, // ✅ 변경
+        email: email,
         password: password,
         options: {
           data: {
             username: username,
-            name: name
+            name: name,
           }
         }
       });
 
       if (authError) throw authError;
-      if (!authData.user) throw new Error('사용자 생성 실패');
 
-      // 2. users 테이블에 정보 저장
-      const { error: userError } = await supabase
-        .from('users')
-        .insert([{
-          id: authData.user.id,
-          username: username,
-          name: name
-        }]);
+      const userId = authData.user.id;
 
-      if (userError) {
-        // username 중복이면 더 명확한 메시지
-        if (userError.code === '23505') {
-          throw new Error('이미 존재하는 아이디입니다');
-        }
-        throw userError;
-      }
+      const { error: profileError } = await supabase
+        .from('user_profile')
+        .insert([
+          {
+            user_id: userId,
+            username: username,
+            name: name,
+            profile_data: {},
+            user_instructions: ''
+          }
+        ]);
 
-      return { 
-        success: true, 
+      if (profileError) throw profileError;
+
+      return {
+        success: true,
         user: {
-          id: authData.user.id,
+          id: userId,
           username: username,
-          name: name
+          name: name,
         }
       };
     } catch (error) {
       console.error('회원가입 실패:', error);
-      return { 
-        success: false, 
-        error: error.message || '회원가입에 실패했습니다' 
-      };
+      return { success: false, error: error.message };
     }
   },
 
-  // 로그인
-  signIn: async (username, password) => {
-    try {
-      // 1. Supabase Auth로 로그인
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: `${username}@heartview.com`, // ✅ 변경
-        password: password
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('로그인 실패');
-
-      // 2. users 테이블에서 사용자 정보 가져오기
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authData.user.id)
-        .single();
-
-      if (userError) throw userError;
-
-      return { 
-        success: true, 
-        user: userData
-      };
-    } catch (error) {
-      console.error('로그인 실패:', error);
-      return { 
-        success: false, 
-        error: '아이디 또는 비밀번호가 올바르지 않습니다' 
-      };
-    }
-  },
-
-  // 로그아웃
-  signOut: async () => {
+  async signOut() {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      return { success: true };
     } catch (error) {
       console.error('로그아웃 실패:', error);
+      return { success: false, error: error.message };
     }
   },
 
-  // 현재 사용자 (세션에서)
-  getCurrentUser: async () => {
+  // ✅ OAuth 콜백 처리
+  async handleOAuthCallback() {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
       
-      if (!session) return null;
+      if (error) throw error;
+      if (!session) return { success: false, error: '세션이 없습니다.' };
 
-      // users 테이블에서 사용자 정보 가져오기
-      const { data: userData, error } = await supabase
-        .from('users')
+      // OAuth로 로그인한 사용자의 프로필 생성 또는 업데이트
+      const userId = session.user.id;
+      const email = session.user.email;
+      const name = session.user.user_metadata?.full_name || 
+                   session.user.user_metadata?.name || 
+                   email?.split('@')[0] || '사용자';
+
+      // 기존 프로필 확인
+      const { data: existingProfile } = await supabase
+        .from('user_profile')
         .select('*')
-        .eq('id', session.user.id)
+        .eq('user_id', userId)
         .single();
 
-      if (error) throw error;
-      return userData;
+      if (!existingProfile) {
+        // 새 프로필 생성
+        await supabase.from('user_profile').insert([{
+          user_id: userId,
+          username: email?.split('@')[0] || `user_${userId.substring(0, 8)}`,
+          name: name,
+          profile_data: {},
+          user_instructions: ''
+        }]);
+      }
+
+      const user = await this.getCurrentUser();
+      return { success: true, user };
     } catch (error) {
-      console.error('사용자 정보 가져오기 실패:', error);
-      return null;
+      console.error('OAuth 콜백 처리 실패:', error);
+      return { success: false, error: error.message };
     }
   }
 };
 
-// ========================================
-// 대화 헬퍼 (변경 없음 - RLS가 자동으로 처리)
-// ========================================
+// 대화 헬퍼
 export const conversationHelpers = {
-  getConversations: async (userId) => {
+  async getConversations(userId) {
     try {
       const { data, error } = await supabase
         .from('conversations')
@@ -145,21 +171,16 @@ export const conversationHelpers = {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('대화 목록 가져오기 실패:', error);
+      console.error('대화 목록 조회 실패:', error);
       return [];
     }
   },
 
-  createConversation: async (userId, title = '새 대화') => {
+  async createConversation(userId, title) {
     try {
       const { data, error } = await supabase
         .from('conversations')
-        .insert([{ 
-          user_id: userId, 
-          title,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
+        .insert([{ user_id: userId, title: title }])
         .select()
         .single();
 
@@ -171,45 +192,7 @@ export const conversationHelpers = {
     }
   },
 
-  updateConversationTitle: async (conversationId, newTitle) => {
-    try {
-      const { error } = await supabase
-        .from('conversations')
-        .update({ 
-          title: newTitle,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', conversationId);
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error('제목 변경 실패:', error);
-      return false;
-    }
-  },
-
-  deleteConversation: async (conversationId) => {
-    try {
-      await supabase
-        .from('messages')
-        .delete()
-        .eq('conversation_id', conversationId);
-
-      const { error } = await supabase
-        .from('conversations')
-        .delete()
-        .eq('id', conversationId);
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error('대화 삭제 실패:', error);
-      return false;
-    }
-  },
-
-  getMessages: async (conversationId) => {
+  async getMessages(conversationId) {
     try {
       const { data, error } = await supabase
         .from('messages')
@@ -220,20 +203,19 @@ export const conversationHelpers = {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('메시지 가져오기 실패:', error);
+      console.error('메시지 조회 실패:', error);
       return [];
     }
   },
 
-  addMessage: async (conversationId, role, content) => {
+  async addMessage(conversationId, role, content) {
     try {
       const { data, error } = await supabase
         .from('messages')
-        .insert([{ 
-          conversation_id: conversationId, 
-          role, 
-          content,
-          created_at: new Date().toISOString()
+        .insert([{
+          conversation_id: conversationId,
+          role: role,
+          content: content
         }])
         .select()
         .single();
@@ -250,14 +232,26 @@ export const conversationHelpers = {
       console.error('메시지 추가 실패:', error);
       throw error;
     }
+  },
+
+  async updateConversationTitle(conversationId, title) {
+    try {
+      const { error } = await supabase
+        .from('conversations')
+        .update({ title: title })
+        .eq('id', conversationId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('대화 제목 업데이트 실패:', error);
+      throw error;
+    }
   }
 };
 
-// ========================================
-// 도전과제 헬퍼 (변경 없음 - RLS가 자동으로 처리)
-// ========================================
+// 도전과제 헬퍼
 export const challengeHelpers = {
-  getChallenges: async (userId) => {
+  async getChallenges(userId) {
     try {
       const { data, error } = await supabase
         .from('challenges')
@@ -268,12 +262,12 @@ export const challengeHelpers = {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('도전과제 가져오기 실패:', error);
+      console.error('도전과제 조회 실패:', error);
       return [];
     }
   },
 
-  createChallenge: async (userId, conversationId, challengeData) => {
+  async createChallenge(userId, conversationId, challengeData) {
     try {
       const { data, error } = await supabase
         .from('challenges')
@@ -281,10 +275,9 @@ export const challengeHelpers = {
           user_id: userId,
           conversation_id: conversationId,
           title: challengeData.title,
-          description: challengeData.description || challengeData.title,
-          level: challengeData.level || 1,
-          status: 'active',
-          created_at: new Date().toISOString()
+          description: challengeData.description,
+          level: challengeData.level,
+          status: 'active'
         }])
         .select()
         .single();
@@ -297,31 +290,27 @@ export const challengeHelpers = {
     }
   },
 
-  completeChallenge: async (challengeId) => {
+  async completeChallenge(challengeId) {
     try {
       const { error } = await supabase
         .from('challenges')
-        .update({ 
+        .update({
           status: 'completed',
           completed_at: new Date().toISOString()
         })
         .eq('id', challengeId);
 
       if (error) throw error;
-      return true;
     } catch (error) {
       console.error('도전과제 완료 실패:', error);
-      return false;
+      throw error;
     }
   },
 
-  updateChallengeStatus: async (challengeId, status) => {
+  async updateChallengeStatus(challengeId, status) {
     try {
-      const updateData = { status };
-      
-      if (status === 'completed') {
-        updateData.completed_at = new Date().toISOString();
-      } else {
+      const updateData = { status: status };
+      if (status === 'active') {
         updateData.completed_at = null;
       }
 
@@ -331,14 +320,13 @@ export const challengeHelpers = {
         .eq('id', challengeId);
 
       if (error) throw error;
-      return true;
     } catch (error) {
-      console.error('도전과제 상태 변경 실패:', error);
-      return false;
+      console.error('도전과제 상태 업데이트 실패:', error);
+      throw error;
     }
   },
 
-  getUserStats: async (userId) => {
+  async getUserStats(userId) {
     try {
       const { data, error } = await supabase
         .from('challenges')
@@ -347,40 +335,21 @@ export const challengeHelpers = {
 
       if (error) throw error;
 
-      const challenges = data || [];
-      const total = challenges.length;
-      const completed = challenges.filter(c => c.status === 'completed').length;
-      const active = challenges.filter(c => c.status === 'active').length;
+      const total = data.length;
+      const completed = data.filter(c => c.status === 'completed').length;
+      const active = data.filter(c => c.status === 'active').length;
 
       return { total, completed, active };
     } catch (error) {
-      console.error('통계 가져오기 실패:', error);
+      console.error('사용자 통계 조회 실패:', error);
       return { total: 0, completed: 0, active: 0 };
-    }
-  },
-
-  deleteChallenge: async (challengeId) => {
-    try {
-      const { error } = await supabase
-        .from('challenges')
-        .delete()
-        .eq('id', challengeId);
-
-      if (error) throw error;
-      return true;
-    } catch (error) {
-      console.error('도전과제 삭제 실패:', error);
-      return false;
     }
   }
 };
 
-// ========================================
-// 프로필 헬퍼 (사용자 학습 정보) - 하트뷰 버전
-// ========================================
+// 프로필 헬퍼
 export const profileHelpers = {
-  // 프로필 가져오기
-  getProfile: async (userId) => {
+  async getProfile(userId) {
     try {
       const { data, error } = await supabase
         .from('user_profile')
@@ -388,109 +357,28 @@ export const profileHelpers = {
         .eq('user_id', userId)
         .single();
 
-      if (error) {
-        // 프로필 없으면 빈 객체
-        if (error.code === 'PGRST116') {
-          return { profile_data: {} };
-        }
-        throw error;
-      }
-      
-      return data;
+      if (error) throw error;
+      return data || { profile_data: {}, user_instructions: '' };
     } catch (error) {
-      console.error('프로필 가져오기 실패:', error);
-      return { profile_data: {} };
+      console.error('프로필 조회 실패:', error);
+      return { profile_data: {}, user_instructions: '' };
     }
   },
 
-  // 프로필 업데이트
-  updateProfile: async (userId, profileData) => {
-    try {
-      // 프로필 존재 확인
-      const { data: existing } = await supabase
-        .from('user_profile')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
-
-      if (existing) {
-        // 업데이트
-        const { error } = await supabase
-          .from('user_profile')
-          .update({
-            profile_data: profileData,
-            last_updated: new Date().toISOString()
-          })
-          .eq('user_id', userId);
-
-        if (error) throw error;
-      } else {
-        // 생성
-        const { error } = await supabase
-          .from('user_profile')
-          .insert([{
-            user_id: userId,
-            profile_data: profileData
-          }]);
-
-        if (error) throw error;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('프로필 업데이트 실패:', error);
-      return false;
-    }
-  },
-
-  // 프로필 필드 추가/수정
-  updateProfileField: async (userId, key, value) => {
-    try {
-      const profile = await profileHelpers.getProfile(userId);
-      const newData = {
-        ...profile.profile_data,
-        [key]: value
-      };
-      
-      return await profileHelpers.updateProfile(userId, newData);
-    } catch (error) {
-      console.error('프로필 필드 업데이트 실패:', error);
-      return false;
-    }
-  },
-
-  // ✅ 프로필을 텍스트로 변환 (Claude에게 전달용) - 하트뷰 버전
-  profileToText: (profileData) => {
+  profileToText(profileData) {
     if (!profileData || Object.keys(profileData).length === 0) {
       return '';
     }
 
-    let text = '# 사용자 정보\n\n';
+    const parts = [];
+    if (profileData['희망 직무']) parts.push(`희망 직무: ${profileData['희망 직무']}`);
+    if (profileData['거주 지역']) parts.push(`거주 지역: ${profileData['거주 지역']}`);
+    if (profileData['현재 상태']) parts.push(`현재 상태: ${profileData['현재 상태']}`);
+    if (profileData['심리 상태']) parts.push(`심리 상태: ${profileData['심리 상태']}`);
+    if (profileData['근무 조건']) parts.push(`근무 조건: ${profileData['근무 조건']}`);
+    if (profileData['관심 분야']) parts.push(`관심 분야: ${profileData['관심 분야']}`);
 
-    // ✅ 하트뷰 필드
-    if (profileData['희망 직무']) {
-      text += `희망 직무: ${profileData['희망 직무']}\n`;
-    }
-    if (profileData['거주 지역']) {
-      text += `거주 지역: ${profileData['거주 지역']}\n`;
-    }
-    if (profileData['현재 상태']) {
-      text += `현재 상태: ${profileData['현재 상태']}\n`;
-    }
-    if (profileData['심리 상태']) {
-      text += `심리 상태: ${profileData['심리 상태']}\n`;
-    }
-    if (profileData['근무 조건']) {
-      text += `근무 조건: ${profileData['근무 조건']}\n`;
-    }
-    if (profileData['관심 분야']) {
-      text += `관심 분야: ${profileData['관심 분야']}\n`;
-    }
-    if (profileData['어려운 점']) {
-      text += `어려운 점: ${profileData['어려운 점']}\n`;
-    }
-
-    return text;
+    return parts.length > 0 ? `[사용자 프로필]\n${parts.join('\n')}` : '';
   }
 };
 
