@@ -376,20 +376,25 @@ function MainApp() {
   };
 
   // ✅ 카카오 로그인 핸들러 (Supabase OAuth)
-  const handleKakaoLogin = async () => {
+const handleKakaoLogin = async () => {
+  try {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'kakao',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: 'https://spark-ai-coach.vercel.app/auth/callback',
+        skipBrowserRedirect: false, // 명시적으로 설정
       },
     });
 
     if (error) {
-      console.error('카카오 로그인 실패:', error);
-      alert('로그인에 실패했습니다: ' + (error.message || 'Unknown error'));
+      console.error('❌ 카카오 로그인 실패:', error);
+      alert('로그인 실패: ' + error.message);
     }
-  };
-
+  } catch (e) {
+    console.error('❌ 예외 발생:', e);
+    alert('오류 발생: ' + e.message);
+  }
+};
   const handleSaveUserInstructions = async () => {
     if (!user?.id) {
       alert('❌ 사용자 정보가 없습니다. 다시 로그인해주세요.');
