@@ -1,10 +1,10 @@
-// src/App.js - 카카오 로그인 포함 버전
+// src/App.js - 카카오 로그인 포함 버전 (Supabase OAuth 정석 적용)
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, useNavigate, useSearchParams } from 'react-router-dom';
 import { Send, Heart, MapPin, CheckCircle, Circle, Trophy, LogOut, Target, ArrowLeft, X, Plus, Trash2 } from 'lucide-react';
-import { 
-  authHelpers, 
-  conversationHelpers, 
+import {
+  authHelpers,
+  conversationHelpers,
   challengeHelpers,
   profileHelpers,
   supabase
@@ -19,8 +19,6 @@ class ErrorBoundary extends React.Component {
     this.state = { hasError: false, error: null };
   }
 
-  
-
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
@@ -32,8 +30,8 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ 
-          minHeight: '100vh', 
+        <div style={{
+          minHeight: '100vh',
           background: 'linear-gradient(to bottom right, #dbeafe, #c7d2fe, #ddd6fe)',
           display: 'flex',
           alignItems: 'center',
@@ -84,15 +82,15 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// 카카오 로그인 콜백 컴포넌트
+// ✅ 카카오 로그인 콜백 컴포넌트 (Supabase OAuth 세션 교환)
 function KakaoCallback() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const handleKakaoCallback = async () => {
+    const run = async () => {
       const code = searchParams.get('code');
-      
+
       if (!code) {
         alert('로그인에 실패했습니다.');
         navigate('/');
@@ -100,31 +98,25 @@ function KakaoCallback() {
       }
 
       try {
-        const response = await fetch('/api/kakao-auth', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code })
-        });
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
 
-        const data = await response.json();
-        
-        if (data.success) {
-          // 로그인 성공 - 페이지 새로고침으로 App 재로드
-          window.location.href = '/';
-        } else {
-          alert('로그인에 실패했습니다: ' + data.error);
+        if (error) {
+          console.error('세션 교환 실패:', error);
+          alert('로그인에 실패했습니다: ' + (error.message || 'Unknown error'));
           navigate('/');
+          return;
         }
-      } catch (error) {
-        console.error('카카오 로그인 실패:', error);
+
+        window.location.href = '/';
+      } catch (e) {
+        console.error('콜백 처리 실패:', e);
         alert('로그인에 실패했습니다.');
         navigate('/');
       }
     };
 
-    handleKakaoCallback();
+    run();
   }, [searchParams, navigate]);
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-400 via-indigo-400 to-purple-500 flex items-center justify-center">
@@ -140,135 +132,135 @@ function KakaoCallback() {
 
 // 하트뷰 레벨 시스템
 const LEVEL_SYSTEM = {
-  1: { 
-    emoji: "🌱", 
-    title: "준비: 첫 걸음", 
-    description: "구직 준비 시작 단계", 
-    color: "from-blue-400 to-cyan-400", 
-    bgColor: "from-blue-50 to-cyan-50", 
+  1: {
+    emoji: "🌱",
+    title: "준비: 첫 걸음",
+    description: "구직 준비 시작 단계",
+    color: "from-blue-400 to-cyan-400",
+    bgColor: "from-blue-50 to-cyan-50",
     requirements: [
       "하루 10분 산책하기",
       "관심 있는 직무 3가지 찾아보기",
       "간단한 이력서 초안 작성"
-    ], 
-    requiredChallenges: 3 
+    ],
+    requiredChallenges: 3
   },
-  2: { 
-    emoji: "🔍", 
-    title: "탐색: 일자리 찾기", 
-    description: "지역 일자리 둘러보기", 
-    color: "from-cyan-400 to-sky-400", 
-    bgColor: "from-cyan-50 to-sky-50", 
+  2: {
+    emoji: "🔍",
+    title: "탐색: 일자리 찾기",
+    description: "지역 일자리 둘러보기",
+    color: "from-cyan-400 to-sky-400",
+    bgColor: "from-cyan-50 to-sky-50",
     requirements: [
       "지역 일자리 사이트 둘러보기",
       "관심 기업/가게 3곳 리스트업",
       "자기소개서 한 문장 써보기"
-    ], 
-    requiredChallenges: 5 
+    ],
+    requiredChallenges: 5
   },
-  3: { 
-    emoji: "📝", 
-    title: "시작: 지원해보기", 
-    description: "첫 지원 경험", 
-    color: "from-sky-400 to-blue-400", 
-    bgColor: "from-sky-50 to-blue-50", 
+  3: {
+    emoji: "📝",
+    title: "시작: 지원해보기",
+    description: "첫 지원 경험",
+    color: "from-sky-400 to-blue-400",
+    bgColor: "from-sky-50 to-blue-50",
     requirements: [
       "이력서 1곳 제출해보기",
       "전화 문의 1곳 해보기",
       "일자리 설명회 참석"
-    ], 
-    requiredChallenges: 8 
+    ],
+    requiredChallenges: 8
   },
-  4: { 
-    emoji: "💪", 
-    title: "도전: 적극 지원", 
-    description: "여러 곳 지원하기", 
-    color: "from-blue-400 to-indigo-400", 
-    bgColor: "from-blue-50 to-indigo-50", 
+  4: {
+    emoji: "💪",
+    title: "도전: 적극 지원",
+    description: "여러 곳 지원하기",
+    color: "from-blue-400 to-indigo-400",
+    bgColor: "from-blue-50 to-indigo-50",
     requirements: [
       "이력서 3곳 이상 제출",
       "면접 1회 경험",
       "청년센터 상담 받기"
-    ], 
-    requiredChallenges: 12 
+    ],
+    requiredChallenges: 12
   },
-  5: { 
-    emoji: "🎯", 
-    title: "성장: 경험 쌓기", 
-    description: "역량 강화", 
-    color: "from-indigo-400 to-purple-400", 
-    bgColor: "from-indigo-50 to-purple-50", 
+  5: {
+    emoji: "🎯",
+    title: "성장: 경험 쌓기",
+    description: "역량 강화",
+    color: "from-indigo-400 to-purple-400",
+    bgColor: "from-indigo-50 to-purple-50",
     requirements: [
       "면접 후 피드백 정리",
       "자격증 시험 준비 시작",
       "지역 청년 모임 참여"
-    ], 
-    requiredChallenges: 16 
+    ],
+    requiredChallenges: 16
   },
-  6: { 
-    emoji: "📚", 
-    title: "발전: 자격증/교육", 
-    description: "스킬 업그레이드", 
-    color: "from-purple-400 to-pink-400", 
-    bgColor: "from-purple-50 to-pink-50", 
+  6: {
+    emoji: "📚",
+    title: "발전: 자격증/교육",
+    description: "스킬 업그레이드",
+    color: "from-purple-400 to-pink-400",
+    bgColor: "from-purple-50 to-pink-50",
     requirements: [
       "자격증 1개 취득",
       "단기 아르바이트 경험",
       "멘토링 프로그램 참여"
-    ], 
-    requiredChallenges: 20 
+    ],
+    requiredChallenges: 20
   },
-  7: { 
-    emoji: "🤝", 
-    title: "확장: 네트워킹", 
-    description: "인맥 쌓기", 
-    color: "from-pink-400 to-rose-400", 
-    bgColor: "from-pink-50 to-rose-50", 
+  7: {
+    emoji: "🤝",
+    title: "확장: 네트워킹",
+    description: "인맥 쌓기",
+    color: "from-pink-400 to-rose-400",
+    bgColor: "from-pink-50 to-rose-50",
     requirements: [
       "정규직 면접 3회 이상",
       "네트워킹 이벤트 참석",
       "직무 교육 프로그램 수료"
-    ], 
-    requiredChallenges: 24 
+    ],
+    requiredChallenges: 24
   },
-  8: { 
-    emoji: "💼", 
-    title: "안정: 취업 성공", 
-    description: "일자리 찾기 성공", 
-    color: "from-rose-400 to-red-400", 
-    bgColor: "from-rose-50 to-red-50", 
+  8: {
+    emoji: "💼",
+    title: "안정: 취업 성공",
+    description: "일자리 찾기 성공",
+    color: "from-rose-400 to-red-400",
+    bgColor: "from-rose-50 to-red-50",
     requirements: [
       "정규직/희망 직무 취업",
       "첫 월급 받기",
       "근무 적응 기간 완료"
-    ], 
-    requiredChallenges: 28 
+    ],
+    requiredChallenges: 28
   },
-  9: { 
-    emoji: "🌟", 
-    title: "정착: 지역 적응", 
-    description: "안정적 근무", 
-    color: "from-orange-400 to-amber-400", 
-    bgColor: "from-orange-50 to-amber-50", 
+  9: {
+    emoji: "🌟",
+    title: "정착: 지역 적응",
+    description: "안정적 근무",
+    color: "from-orange-400 to-amber-400",
+    bgColor: "from-orange-50 to-amber-50",
     requirements: [
       "3개월 이상 근무",
       "업무 역량 개발",
       "지역 정착 계획 수립"
-    ], 
-    requiredChallenges: 32 
+    ],
+    requiredChallenges: 32
   },
-  10: { 
-    emoji: "🏆", 
-    title: "자립: 완전 독립", 
-    description: "경제적 자립 달성", 
-    color: "from-blue-400 via-indigo-400 to-purple-400", 
-    bgColor: "from-blue-50 via-indigo-50 to-purple-50", 
+  10: {
+    emoji: "🏆",
+    title: "자립: 완전 독립",
+    description: "경제적 자립 달성",
+    color: "from-blue-400 via-indigo-400 to-purple-400",
+    bgColor: "from-blue-50 via-indigo-50 to-purple-50",
     requirements: [
       "6개월 이상 안정 근무",
       "자립 생활 기반 확보",
       "다른 청년 멘토링"
-    ], 
-    requiredChallenges: 35 
+    ],
+    requiredChallenges: 35
   }
 };
 
@@ -309,7 +301,7 @@ function MainApp() {
   const [showStartDialog, setShowStartDialog] = useState(false);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
   const [showLevelRoadmap, setShowLevelRoadmap] = useState(false);
-  
+
   const [showAddChallengeDialog, setShowAddChallengeDialog] = useState(false);
   const [newChallengeTitle, setNewChallengeTitle] = useState('');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -348,7 +340,7 @@ function MainApp() {
         setIsInitialLoading(false);
       }
     };
-    
+
     initApp();
   }, []);
 
@@ -364,12 +356,12 @@ function MainApp() {
         challengeHelpers.getChallenges(userId),
         profileHelpers.getProfile(userId)
       ]);
-      
+
       setConversations(convs);
       setChallenges(challs);
       setUserProfile(profile.profile_data || {});
       setUserInstructions(profile.user_instructions || '');
-      
+
       const stats = await challengeHelpers.getUserStats(userId);
       setUserStats({ ...stats, level: calculateLevel(stats.completed) });
     } catch (error) {
@@ -383,14 +375,19 @@ function MainApp() {
     setShowConfirmDialog(true);
   };
 
-  // ✅ 카카오 로그인 핸들러
-  const handleKakaoLogin = () => {
-    const KAKAO_REST_API_KEY = process.env.REACT_APP_KAKAO_REST_API_KEY;
-    const REDIRECT_URI = process.env.REACT_APP_KAKAO_REDIRECT_URI;
-    
-    const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_REST_API_KEY}&redirect_uri=${REDIRECT_URI}&response_type=code`;
-    
-    window.location.href = kakaoAuthUrl;
+  // ✅ 카카오 로그인 핸들러 (Supabase OAuth)
+  const handleKakaoLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'kakao',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      console.error('카카오 로그인 실패:', error);
+      alert('로그인에 실패했습니다: ' + (error.message || 'Unknown error'));
+    }
   };
 
   const handleSaveUserInstructions = async () => {
@@ -398,18 +395,18 @@ function MainApp() {
       alert('❌ 사용자 정보가 없습니다. 다시 로그인해주세요.');
       return;
     }
-    
+
     try {
       const { data, error } = await supabase
         .from('user_profile')
         .update({ user_instructions: userInstructions })
         .eq('user_id', user.id);
-      
+
       if (error) throw error;
-      
+
       setShowProfileDialog(false);
       alert('✅ 내 정보가 저장되었습니다!');
-    } 
+    }
     catch (error) {
       console.error('❌ 저장 실패:', error);
       alert(`❌ 저장에 실패했습니다: ${error.message}`);
@@ -420,24 +417,24 @@ function MainApp() {
     if (!userProfile || Object.keys(userProfile).length === 0) {
       return "아직 학습된 정보가 없습니다. 대화를 통해 하트뷰가 당신을 알아가고 있어요!";
     }
-    
+
     const items = [];
-    
+
     if (userProfile['희망 직무']) items.push(`희망 직무: ${userProfile['희망 직무']}`);
     if (userProfile['거주 지역']) items.push(`거주 지역: ${userProfile['거주 지역']}`);
     if (userProfile['현재 상태']) items.push(`현재 상태: ${userProfile['현재 상태']}`);
     if (userProfile['심리 상태']) items.push(`심리 상태: ${userProfile['심리 상태']}`);
     if (userProfile['근무 조건']) items.push(`근무 조건: ${userProfile['근무 조건']}`);
     if (userProfile['관심 분야']) items.push(`관심 분야: ${userProfile['관심 분야']}`);
-    
+
     const completedChallenges = challenges
       .filter(c => c.status === 'completed')
       .map(c => c.title);
-    
+
     const activeChallenges = challenges
       .filter(c => c.status === 'active')
       .map(c => c.title);
-    
+
     if (completedChallenges.length > 0 || activeChallenges.length > 0) {
       let challengeText = '도전과제:\n';
       if (completedChallenges.length > 0) {
@@ -448,7 +445,7 @@ function MainApp() {
       }
       items.push(challengeText);
     }
-    
+
     return items.length > 0 ? items.join('\n\n') : "아직 학습된 정보가 없습니다.";
   };
 
@@ -495,32 +492,32 @@ function MainApp() {
 
   const handleConfirmStart = async () => {
     if (!selectedChallenge) return;
-    
+
     let actualChallenge = selectedChallenge;
-    
+
     if (selectedChallenge.isTemp) {
       actualChallenge = await challengeHelpers.createChallenge(user.id, null, {
         title: selectedChallenge.title,
         description: selectedChallenge.description,
         level: userStats.level
       });
-      
+
       setChallenges(prev => [actualChallenge, ...prev]);
       const stats = await challengeHelpers.getUserStats(user.id);
       setUserStats({ ...stats, level: calculateLevel(stats.completed) });
     }
-    
+
     setActiveChallengeId(actualChallenge.id);
     setViewMode('chat');
     setShowStartDialog(false);
-    
+
     const conv = await conversationHelpers.createConversation(
-      user.id, 
+      user.id,
       `[도전과제] ${actualChallenge.title}`
     );
     setCurrentConversationId(conv.id);
     setConversations([conv, ...conversations]);
-    
+
     const welcomeMessage = `좋아! "${actualChallenge.title}" 같이 시작해보자! 💪\n\n어디까지 진행했어? 막히는 부분 있어?`;
     await conversationHelpers.addMessage(conv.id, 'assistant', welcomeMessage);
     setMessages([{ role: 'assistant', content: welcomeMessage }]);
@@ -537,7 +534,7 @@ function MainApp() {
             description: requirementText,
             level: userStats.level
           });
-          
+
           setChallenges(prev => [newChallenge, ...prev]);
           const stats = await challengeHelpers.getUserStats(user.id);
           setUserStats({ ...stats, level: calculateLevel(stats.completed) });
@@ -550,18 +547,18 @@ function MainApp() {
 
   const handleManualAddChallenge = async () => {
     if (!newChallengeTitle.trim()) return;
-    
+
     try {
       const newChallenge = await challengeHelpers.createChallenge(user.id, null, {
         title: newChallengeTitle.trim(),
         description: newChallengeTitle.trim(),
         level: userStats.level
       });
-      
+
       setChallenges(prev => [newChallenge, ...prev]);
       const stats = await challengeHelpers.getUserStats(user.id);
       setUserStats({ ...stats, level: calculateLevel(stats.completed) });
-      
+
       setNewChallengeTitle('');
       setShowAddChallengeDialog(false);
     } catch (error) {
@@ -577,10 +574,10 @@ function MainApp() {
   };
 
   const handleRecommendedChallengeClick = async (requirementText) => {
-    const existingChallenge = challenges.find(c => 
+    const existingChallenge = challenges.find(c =>
       c.title === requirementText || c.description === requirementText
     );
-    
+
     if (existingChallenge) {
       handleChallengeTextClick(existingChallenge);
     } else {
@@ -590,7 +587,7 @@ function MainApp() {
         level: userStats.level,
         isTemp: true
       };
-      
+
       setSelectedChallenge(tempChallenge);
       setShowStartDialog(true);
     }
@@ -610,13 +607,13 @@ function MainApp() {
 
       const recentMessages = newMessages.slice(-MAX_CONTEXT_MESSAGES);
       const profileText = profileHelpers.profileToText(userProfile);
-      
+
       let systemContext = '';
-      
+
       if (profileText) {
         systemContext += profileText;
       }
-      
+
       if (userInstructions && userInstructions.trim()) {
         if (systemContext) {
           systemContext += '\n\n[사용자 지침]\n' + userInstructions.trim();
@@ -624,24 +621,24 @@ function MainApp() {
           systemContext = '[사용자 지침]\n' + userInstructions.trim();
         }
       }
-      
-      const messagesToSend = systemContext 
+
+      const messagesToSend = systemContext
         ? [
-            { role: 'user', content: systemContext },
-            ...recentMessages.map(m => ({
-              role: m.role,
-              content: m.content
-            }))
-          ]
-        : recentMessages.map(m => ({
+          { role: 'user', content: systemContext },
+          ...recentMessages.map(m => ({
             role: m.role,
             content: m.content
-          }));
-        
+          }))
+        ]
+        : recentMessages.map(m => ({
+          role: m.role,
+          content: m.content
+        }));
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           messages: messagesToSend,
           token: user.id,
           conversation_id: currentConversationId,
@@ -663,10 +660,10 @@ function MainApp() {
       if (data.suggested_challenge && data.challenge_added) {
         const updatedChallenges = await challengeHelpers.getChallenges(user.id);
         setChallenges(updatedChallenges);
-        
+
         const stats = await challengeHelpers.getUserStats(user.id);
         setUserStats({ ...stats, level: calculateLevel(stats.completed) });
-        
+
         alert(`✅ 새 도전과제 추가: ${data.suggested_challenge.title}`);
       }
 
@@ -677,7 +674,7 @@ function MainApp() {
           async () => {
             await challengeHelpers.completeChallenge(activeChallengeId);
             setChallenges(prev => prev.map(c => c.id === activeChallengeId ? { ...c, status: 'completed' } : c));
-            
+
             setTimeout(() => {
               showConfirm('완료!', '✅ 도전과제 완료! 계속 화이팅! 💪', () => handleBackToMain());
             }, 500);
@@ -697,17 +694,17 @@ function MainApp() {
     try {
       const challenge = challenges.find(c => c.id === challengeId);
       if (!challenge) return;
-      
+
       const newStatus = challenge.status === 'completed' ? 'active' : 'completed';
-      
+
       if (newStatus === 'completed') {
         await challengeHelpers.completeChallenge(challengeId);
       } else {
         await challengeHelpers.updateChallengeStatus(challengeId, 'active');
       }
-      
+
       setChallenges(prev => prev.map(c => c.id === challengeId ? { ...c, status: newStatus } : c));
-      
+
       const stats = await challengeHelpers.getUserStats(user.id);
       setUserStats({ ...stats, level: calculateLevel(stats.completed) });
     } catch (error) {
@@ -722,14 +719,14 @@ function MainApp() {
 
   const confirmDeleteChallenge = async () => {
     if (!challengeToDelete) return;
-    
+
     try {
       await supabase.from('challenges').delete().eq('id', challengeToDelete.id);
       setChallenges(prev => prev.filter(c => c.id !== challengeToDelete.id));
-      
+
       const stats = await challengeHelpers.getUserStats(user.id);
       setUserStats({ ...stats, level: calculateLevel(stats.completed) });
-      
+
       setShowDeleteDialog(false);
       setChallengeToDelete(null);
     } catch (error) {
@@ -741,15 +738,15 @@ function MainApp() {
     if (!window.confirm('⚠️ 경고\n\n모든 도전과제를 삭제하고 처음부터 시작하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')) {
       return;
     }
-    
+
     try {
       for (const challenge of challenges) {
         await supabase.from('challenges').delete().eq('id', challenge.id);
       }
-      
+
       setChallenges([]);
       setUserStats({ total: 0, completed: 0, active: 0, level: 1 });
-      
+
       alert('✅ 진행상황이 초기화되었습니다.');
     } catch (error) {
       console.error('초기화 실패:', error);
@@ -843,7 +840,7 @@ function MainApp() {
             </button>
           </form>
 
-          {/* ✅ 카카오 로그인 버튼 추가 */}
+          {/* ✅ 카카오 로그인 버튼 */}
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -860,7 +857,7 @@ function MainApp() {
               className="mt-6 w-full py-3 bg-[#FEE500] text-[#000000] rounded-xl font-bold hover:bg-[#FDD835] hover:shadow-xl transition-all transform hover:scale-105 flex items-center justify-center gap-3"
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 3C6.48 3 2 6.58 2 11c0 2.91 1.88 5.45 4.68 6.93-.2.73-.64 2.54-.73 2.94-.11.48.17.47.36.34.14-.09 2.17-1.45 3.06-2.05.52.07 1.06.11 1.63.11 5.52 0 10-3.58 10-8S17.52 3 12 3z"/>
+                <path d="M12 3C6.48 3 2 6.58 2 11c0 2.91 1.88 5.45 4.68 6.93-.2.73-.64 2.54-.73 2.94-.11.48.17.47.36.34.14-.09 2.17-1.45 3.06-2.05.52.07 1.06.11 1.63.11 5.52 0 10-3.58 10-8S17.52 3 12 3z" />
               </svg>
               카카오로 3초만에 시작하기
             </button>
@@ -889,7 +886,7 @@ function MainApp() {
     };
 
     return (
-      <div 
+      <div
         className="min-h-screen bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100"
         style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
       >
@@ -917,7 +914,7 @@ function MainApp() {
                     @{user.username}
                   </p>
                 </div>
-                
+
                 <button
                   onClick={() => setShowProfileDialog(true)}
                   className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg transition-all transform hover:scale-105"
@@ -965,16 +962,16 @@ function MainApp() {
                   <p className="text-xs text-gray-600">{currentLevelInfo.description}</p>
                 </div>
               </div>
-              
+
               {userStats.level < 10 && (
                 <div className="w-full bg-white/50 rounded-full h-3 overflow-hidden">
-                  <div 
+                  <div
                     className={`bg-gradient-to-r ${currentLevelInfo.color} h-3 rounded-full transition-all duration-500`}
                     style={{ width: `${(userStats.completed / LEVEL_SYSTEM[userStats.level + 1].requiredChallenges) * 100}%` }}
                   />
                 </div>
               )}
-              
+
               <p className="text-xs text-center text-blue-600 font-medium mt-3">클릭하여 전체 로드맵 보기 →</p>
             </button>
 
@@ -983,24 +980,24 @@ function MainApp() {
               <h3 className="text-sm font-bold text-cyan-900 mb-3 flex items-center gap-2">
                 💡 Level {userStats.level} 추천 과제
               </h3>
-              
+
               <div className="space-y-2">
                 {currentLevelInfo.requirements.map((req, idx) => {
-                  const alreadyAdded = challenges.some(c => 
+                  const alreadyAdded = challenges.some(c =>
                     c.title === req || c.description === req
                   );
-                  
+
                   return (
                     <div
                       key={`rec-${userStats.level}-${idx}`}
                       className="flex items-start gap-3 p-3 rounded-xl hover:bg-cyan-100 transition-all"
                     >
                       <Circle className="w-4 h-4 mt-0.5 flex-shrink-0 text-cyan-500" />
-                      
+
                       <div className="flex-1 text-sm text-gray-800">
                         {req}
                       </div>
-                      
+
                       {alreadyAdded ? (
                         <span className="text-xs text-green-600 font-medium">✓ 추가됨</span>
                       ) : (
@@ -1043,7 +1040,7 @@ function MainApp() {
                   </button>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 {challenges
                   .filter(c => {
@@ -1054,11 +1051,10 @@ function MainApp() {
                   .map(challenge => (
                     <div
                       key={challenge.id}
-                      className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                        challenge.status === 'completed' 
-                          ? 'hover:bg-green-50 opacity-60' 
-                          : 'hover:bg-blue-100'
-                      }`}
+                      className={`flex items-center gap-3 p-3 rounded-xl transition-all ${challenge.status === 'completed'
+                        ? 'hover:bg-green-50 opacity-60'
+                        : 'hover:bg-blue-100'
+                        }`}
                     >
                       <button
                         onClick={() => handleToggleChallenge(challenge.id)}
@@ -1070,7 +1066,6 @@ function MainApp() {
                           <Circle className="w-5 h-5 text-blue-500" />
                         )}
                       </button>
-                      
                       <button
                         onClick={() => handleChallengeTextClick(challenge)}
                         className={`flex-1 text-left text-sm transition-colors ${
