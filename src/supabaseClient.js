@@ -8,8 +8,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true, // OAuth 콜백 URL 자동 감지
-    flowType: 'pkce', // PKCE 플로우 사용 (보안 강화)
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+    // 이메일 없이도 작동하도록 설정
+    storage: window.localStorage,
   }
 });
 
