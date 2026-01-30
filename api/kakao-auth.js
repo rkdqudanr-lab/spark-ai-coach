@@ -24,23 +24,38 @@ export default async function handler(req, res) {
 
   const { code } = req.body;
 
+  if (!code) {
+    return res.status(400).json({ error: 'Authorization code is required' });
+  }
+
   try {
+    // 환경변수 확인
+    console.log('Environment check:', {
+      hasRestApiKey: !!process.env.REACT_APP_KAKAO_REST_API_KEY,
+      hasRedirectUri: !!process.env.REACT_APP_KAKAO_REDIRECT_URI,
+      redirectUri: process.env.REACT_APP_KAKAO_REDIRECT_URI
+    });
+
     // 1. 카카오 액세스 토큰 받기
     const tokenResponse = await fetch('https://kauth.kakao.com/oauth/token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         client_id: process.env.REACT_APP_KAKAO_REST_API_KEY,
         redirect_uri: process.env.REACT_APP_KAKAO_REDIRECT_URI,
         code: code
-      })
+      }).toString()
     });
 
     const tokenData = await tokenResponse.json();
+    console.log('Kakao token response status:', tokenResponse.status);
     
     if (!tokenData.access_token) {
-      throw new Error('Failed to get access token');
+      console.error('Kakao token error:', tokenData);
+      throw new Error('Failed to get access token from Kakao: ' + JSON.stringify(tokenData));
     }
 
     const accessToken = tokenData.access_token;
@@ -51,9 +66,11 @@ export default async function handler(req, res) {
     });
 
     const userData = await userResponse.json();
+    console.log('Kakao user data received:', { id: userData.id });
+
     const kakaoId = userData.id;
-    const nickname = userData.properties?.nickname || '카카오 사용자';
-    const profileImage = userData.properties?.profile_image;
+    const nickname = userData.properties?.nickname || userData.kakao_account?.profile?.nickname || '카카오 사용자';
+    const profileImage = userData.properties?.profile_image || userData.kakao_account?.profile?.profile_image_url;
 
     // 3. Supabase에서 사용자 확인/생성
     const { data: existingUser } = await supabase
@@ -67,6 +84,7 @@ export default async function handler(req, res) {
     if (existingUser) {
       // 기존 사용자
       user = existingUser;
+      console.log('Existing user found:', user.id);
     } else {
       // 신규 사용자
       const { data: newUser, error } = await supabase
@@ -80,11 +98,16 @@ export default async function handler(req, res) {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw error;
+      }
+      
       user = newUser;
+      console.log('New user created:', user.id);
     }
 
-    // 4. 세션 생성을 위한 임시 토큰 생성
+    // 4. 세션 토큰 생성
     const sessionToken = Buffer.from(JSON.stringify({
       userId: user.id,
       timestamp: Date.now()
