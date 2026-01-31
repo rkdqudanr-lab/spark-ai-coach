@@ -375,14 +375,15 @@ function MainApp() {
     setShowConfirmDialog(true);
   };
 
-  // ✅ 카카오 로그인 핸들러 (Supabase OAuth)
+// App.js - handleKakaoLogin 수정
 const handleKakaoLogin = async () => {
   try {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'kakao',
       options: {
         redirectTo: 'https://spark-ai-coach.vercel.app/auth/callback',
-        skipBrowserRedirect: false, // 명시적으로 설정
+        skipBrowserRedirect: false,
+        scopes: 'profile_nickname profile_image', // ✅ 이메일 제외!
       },
     });
 
