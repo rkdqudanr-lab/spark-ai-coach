@@ -335,106 +335,115 @@ function MainApp() {
     setShowConfirmDialog(true);
   };
 
-  // ✅ 카카오 로그인 핸들러 (SDK 직접 사용)
-  const handleKakaoLogin = async () => {
-    try {
-      if (!window.Kakao) {
-        alert('카카오 SDK 로딩 실패. 페이지를 새로고침해주세요.');
-        return;
-      }
+const handleKakaoLogin = async () => {
+  try {
+    if (!window.Kakao) {
+      alert('카카오 SDK 로딩 실패');
+      return;
+    }
 
-      window.Kakao.Auth.login({
-        scope: 'profile_nickname,profile_image', // 이메일 제외!
-        success: async (authObj) => {
-          console.log('✅ 카카오 토큰:', authObj.access_token);
-          
-          // 카카오 사용자 정보 가져오기
-          window.Kakao.API.request({
-            url: '/v2/user/me',
-            success: async (response) => {
-              console.log('✅ 카카오 사용자 정보:', response);
+    window.Kakao.Auth.login({
+      scope: 'profile_nickname,profile_image',
+      success: async (authObj) => {
+        console.log('✅ 카카오 토큰:', authObj.access_token);
+        
+        window.Kakao.API.request({
+          url: '/v2/user/me',
+          success: async (response) => {
+            console.log('✅ 카카오 사용자 정보:', response);
+            
+            const kakaoId = response.id;
+            const nickname = response.kakao_account?.profile?.nickname || '사용자';
+            const profileImage = response.kakao_account?.profile?.profile_image_url;
+            
+            // 고정된 비밀번호 사용
+            const fakeEmail = `kakao_${kakaoId}@heartview.local`;
+            const fakePassword = `kakao_${kakaoId}_heartview2025`; // ✅ 고정!
+            
+            // 먼저 로그인 시도
+            let { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email: fakeEmail,
+              password: fakePassword
+            });
+
+            // 로그인 실패하면 회원가입
+            if (signInError) {
+              console.log('⚠️ 로그인 실패, 회원가입 시도...');
               
-              const kakaoId = response.id;
-              const nickname = response.kakao_account?.profile?.nickname || '사용자';
-              const profileImage = response.kakao_account?.profile?.profile_image_url;
-              
-              // Supabase에 수동 로그인 (이메일 없이)
-              const fakeEmail = `kakao_${kakaoId}@heartview.local`;
-              const fakePassword = `kakao_${kakaoId}_heartview2025`;
-              
-              // 먼저 로그인 시도
-              let signInResult = await supabase.auth.signInWithPassword({
+              const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                 email: fakeEmail,
-                password: fakePassword
+                password: fakePassword,
+                options: {
+                  data: {
+                    kakao_id: kakaoId,
+                    nickname: nickname,
+                    profile_image: profileImage
+                  }
+                }
               });
 
-              // 로그인 실패 시 회원가입 시도
-              if (signInResult.error) {
-                const signUpResult = await supabase.auth.signUp({
-                  email: fakeEmail,
-                  password: fakePassword,
-                  options: {
-                    data: {
-                      kakao_id: kakaoId,
-                      nickname: nickname,
-                      profile_image: profileImage
-                    }
-                  }
-                });
-
-                if (signUpResult.error) {
-                  throw signUpResult.error;
-                }
-
-                // 회원가입 후 다시 로그인
-                signInResult = await supabase.auth.signInWithPassword({
-                  email: fakeEmail,
-                  password: fakePassword
-                });
-
-                if (signInResult.error) {
-                  throw signInResult.error;
-                }
+              if (signUpError) {
+                console.error('❌ 회원가입 실패:', signUpError);
+                alert('회원가입 실패: ' + signUpError.message);
+                return;
               }
 
-              // 프로필 생성/업데이트
-              const userId = signInResult.data.user.id;
-              
-              const { data: existingProfile } = await supabase
-                .from('user_profile')
-                .select('*')
-                .eq('user_id', userId)
-                .single();
-
-              if (!existingProfile) {
-                await supabase.from('user_profile').insert([{
-                  user_id: userId,
-                  username: nickname,
-                  name: nickname,
-                  profile_data: { kakao_id: kakaoId, profile_image: profileImage },
-                  user_instructions: ''
-                }]);
-              }
-
-              // 페이지 새로고침하여 로그인 상태 반영
-              window.location.href = '/';
-            },
-            fail: (error) => {
-              console.error('❌ 카카오 사용자 정보 가져오기 실패:', error);
-              alert('사용자 정보를 가져오는데 실패했습니다.');
+              signInData = signUpData;
             }
-          });
-        },
-        fail: (error) => {
-          console.error('❌ 카카오 로그인 실패:', error);
-          alert('카카오 로그인에 실패했습니다.');
-        }
-      });
-    } catch (e) {
-      console.error('❌ 예외 발생:', e);
-      alert('오류 발생: ' + e.message);
-    }
-  };
+
+            if (!signInData?.user) {
+              alert('로그인 정보를 가져올 수 없습니다.');
+              return;
+            }
+
+            // 프로필 생성/업데이트
+            const userId = signInData.user.id;
+            
+            const { data: existingProfile } = await supabase
+              .from('user_profile')
+              .select('*')
+              .eq('user_id', userId)
+              .single();
+
+            if (!existingProfile) {
+              await supabase.from('user_profile').insert([{
+                user_id: userId,
+                username: nickname,
+                name: nickname,
+                profile_data: { kakao_id: kakaoId, profile_image: profileImage },
+                user_instructions: ''
+              }]);
+            }
+
+            // ✅ 사용자 정보 설정 및 데이터 로드
+            const currentUser = {
+              id: userId,
+              username: nickname,
+              name: nickname,
+              email: fakeEmail
+            };
+            
+            setUser(currentUser);
+            await loadUserData(userId);
+            
+            console.log('✅ 카카오 로그인 완료!');
+          },
+          fail: (error) => {
+            console.error('❌ 카카오 사용자 정보 가져오기 실패:', error);
+            alert('사용자 정보를 가져오는데 실패했습니다.');
+          }
+        });
+      },
+      fail: (error) => {
+        console.error('❌ 카카오 로그인 실패:', error);
+        alert('카카오 로그인에 실패했습니다.');
+      }
+    });
+  } catch (e) {
+    console.error('❌ 예외 발생:', e);
+    alert('오류 발생: ' + e.message);
+  }
+};
 
   const handleSaveUserInstructions = async () => {
     if (!user?.id) {
