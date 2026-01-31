@@ -1,6 +1,6 @@
-// src/App.js - 카카오 로그인 포함 버전 (Supabase OAuth 정석 적용)
+// src/App.js - 카카오 SDK 직접 사용 버전
 import React, { useState, useEffect, useRef } from 'react';
-import { Routes, Route, useNavigate, useSearchParams } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { Send, Heart, MapPin, CheckCircle, Circle, Trophy, LogOut, Target, ArrowLeft, X, Plus, Trash2 } from 'lucide-react';
 import {
   authHelpers,
@@ -80,54 +80,6 @@ class ErrorBoundary extends React.Component {
 
     return this.props.children;
   }
-}
-
-// ✅ 카카오 로그인 콜백 컴포넌트 (Supabase OAuth 세션 교환)
-function KakaoCallback() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
-  useEffect(() => {
-    const run = async () => {
-      const code = searchParams.get('code');
-
-      if (!code) {
-        alert('로그인에 실패했습니다.');
-        navigate('/');
-        return;
-      }
-
-      try {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-        if (error) {
-          console.error('세션 교환 실패:', error);
-          alert('로그인에 실패했습니다: ' + (error.message || 'Unknown error'));
-          navigate('/');
-          return;
-        }
-
-        window.location.href = '/';
-      } catch (e) {
-        console.error('콜백 처리 실패:', e);
-        alert('로그인에 실패했습니다.');
-        navigate('/');
-      }
-    };
-
-    run();
-  }, [searchParams, navigate]);
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-400 via-indigo-400 to-purple-500 flex items-center justify-center">
-      <div className="text-center">
-        <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl mb-4 shadow-lg animate-bounce">
-          <Heart className="w-10 h-10 text-blue-500" />
-        </div>
-        <p className="text-white font-bold text-xl">로그인 중...</p>
-      </div>
-    </div>
-  );
 }
 
 // 하트뷰 레벨 시스템
@@ -324,6 +276,14 @@ function MainApp() {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
+  // ✅ 카카오 SDK 초기화
+  useEffect(() => {
+    if (window.Kakao && !window.Kakao.isInitialized()) {
+      window.Kakao.init('b858c100385fec54035c78c5ce1a334a'); // REST API 키
+      console.log('✅ 카카오 SDK 초기화 완료');
+    }
+  }, []);
+
   // 초기 로드
   useEffect(() => {
     const initApp = async () => {
@@ -375,27 +335,107 @@ function MainApp() {
     setShowConfirmDialog(true);
   };
 
-// App.js - handleKakaoLogin 수정
-const handleKakaoLogin = async () => {
-  try {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'kakao',
-      options: {
-        redirectTo: 'https://spark-ai-coach.vercel.app/auth/callback',
-        skipBrowserRedirect: false,
-        scopes: 'profile_nickname profile_image', // ✅ 이메일 제외!
-      },
-    });
+  // ✅ 카카오 로그인 핸들러 (SDK 직접 사용)
+  const handleKakaoLogin = async () => {
+    try {
+      if (!window.Kakao) {
+        alert('카카오 SDK 로딩 실패. 페이지를 새로고침해주세요.');
+        return;
+      }
 
-    if (error) {
-      console.error('❌ 카카오 로그인 실패:', error);
-      alert('로그인 실패: ' + error.message);
+      window.Kakao.Auth.login({
+        scope: 'profile_nickname,profile_image', // 이메일 제외!
+        success: async (authObj) => {
+          console.log('✅ 카카오 토큰:', authObj.access_token);
+          
+          // 카카오 사용자 정보 가져오기
+          window.Kakao.API.request({
+            url: '/v2/user/me',
+            success: async (response) => {
+              console.log('✅ 카카오 사용자 정보:', response);
+              
+              const kakaoId = response.id;
+              const nickname = response.kakao_account?.profile?.nickname || '사용자';
+              const profileImage = response.kakao_account?.profile?.profile_image_url;
+              
+              // Supabase에 수동 로그인 (이메일 없이)
+              const fakeEmail = `kakao_${kakaoId}@heartview.local`;
+              const fakePassword = `kakao_${kakaoId}_heartview2025`;
+              
+              // 먼저 로그인 시도
+              let signInResult = await supabase.auth.signInWithPassword({
+                email: fakeEmail,
+                password: fakePassword
+              });
+
+              // 로그인 실패 시 회원가입 시도
+              if (signInResult.error) {
+                const signUpResult = await supabase.auth.signUp({
+                  email: fakeEmail,
+                  password: fakePassword,
+                  options: {
+                    data: {
+                      kakao_id: kakaoId,
+                      nickname: nickname,
+                      profile_image: profileImage
+                    }
+                  }
+                });
+
+                if (signUpResult.error) {
+                  throw signUpResult.error;
+                }
+
+                // 회원가입 후 다시 로그인
+                signInResult = await supabase.auth.signInWithPassword({
+                  email: fakeEmail,
+                  password: fakePassword
+                });
+
+                if (signInResult.error) {
+                  throw signInResult.error;
+                }
+              }
+
+              // 프로필 생성/업데이트
+              const userId = signInResult.data.user.id;
+              
+              const { data: existingProfile } = await supabase
+                .from('user_profile')
+                .select('*')
+                .eq('user_id', userId)
+                .single();
+
+              if (!existingProfile) {
+                await supabase.from('user_profile').insert([{
+                  user_id: userId,
+                  username: nickname,
+                  name: nickname,
+                  profile_data: { kakao_id: kakaoId, profile_image: profileImage },
+                  user_instructions: ''
+                }]);
+              }
+
+              // 페이지 새로고침하여 로그인 상태 반영
+              window.location.href = '/';
+            },
+            fail: (error) => {
+              console.error('❌ 카카오 사용자 정보 가져오기 실패:', error);
+              alert('사용자 정보를 가져오는데 실패했습니다.');
+            }
+          });
+        },
+        fail: (error) => {
+          console.error('❌ 카카오 로그인 실패:', error);
+          alert('카카오 로그인에 실패했습니다.');
+        }
+      });
+    } catch (e) {
+      console.error('❌ 예외 발생:', e);
+      alert('오류 발생: ' + e.message);
     }
-  } catch (e) {
-    console.error('❌ 예외 발생:', e);
-    alert('오류 발생: ' + e.message);
-  }
-};
+  };
+
   const handleSaveUserInstructions = async () => {
     if (!user?.id) {
       alert('❌ 사용자 정보가 없습니다. 다시 로그인해주세요.');
@@ -484,6 +524,13 @@ const handleKakaoLogin = async () => {
   };
 
   const handleLogout = async () => {
+    // 카카오 로그아웃도 함께 처리
+    if (window.Kakao && window.Kakao.Auth) {
+      window.Kakao.Auth.logout(() => {
+        console.log('✅ 카카오 로그아웃 완료');
+      });
+    }
+    
     await authHelpers.signOut();
     setUser(null);
     setViewMode('main');
