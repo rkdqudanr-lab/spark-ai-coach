@@ -1680,7 +1680,6 @@ function App() {
     <ErrorBoundary>
       <Routes>
         <Route path="/" element={<MainApp />} />
-        <Route path="/auth/callback" element={<KakaoCallback />} />
       </Routes>
     </ErrorBoundary>
   );
