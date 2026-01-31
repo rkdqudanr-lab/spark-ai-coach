@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = 'https://jpwydqfkvhglwmlkesla.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impwd3lkcWZrdmhnbHdtbGtlc2xhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0NDczNTcsImV4cCI6MjA1MzAyMzM1N30.ELjqUWXqWn59zYcB8kHQMw_JxC1S4dKyWxT9VCU5lEQ';
+const supabaseAnonKey = 'sb_publishable_C-KKF-NCbBGBeQCDzQW-8A_8FvFVFwh';
 
 // ✅ Supabase 클라이언트 생성 (OAuth 지원 옵션 추가)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
