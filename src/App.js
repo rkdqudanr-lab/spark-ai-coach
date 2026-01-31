@@ -279,7 +279,7 @@ function MainApp() {
   // ✅ 카카오 SDK 초기화
   useEffect(() => {
     if (window.Kakao && !window.Kakao.isInitialized()) {
-      window.Kakao.init('b858c100385fec54035c78c5ce1a334a'); // REST API 키
+      window.Kakao.init('21dfc304dd0b6f0dc6254b3dade618d6'); // REST API 키
       console.log('✅ 카카오 SDK 초기화 완료');
     }
   }, []);
